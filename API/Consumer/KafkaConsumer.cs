@@ -60,22 +60,31 @@ namespace KafkaWebApiDemo.Services
                     while (!stoppingToken.IsCancellationRequested)
                     {
                         var consumeResult = _consumer.Consume(stoppingToken);
-                        var booking = JsonSerializer.Deserialize<TicketBooking>(consumeResult.Message.Value);
-
-                        _logger.LogInformation($"Processing booking: {booking.BookingId}");
-
-
-                        var confirmation = new BookingConfirmation
+                        if (consumeResult.Message.Value is string)
                         {
-                            BookingId = booking.BookingId,
-                            EventId = booking.EventId,
-                            UserId = booking.UserId,
-                            Quantity = booking.Quantity,
-                            Status = "Confirmed",
-                            Message = "Booking confirmed successfully"
-                        };
+                            _logger.LogInformation($"Consumed: {consumeResult.Message.Value}");
+                        }
+                        else
+                        {
 
-                        _logger.LogInformation($"Booking confirmed: {JsonSerializer.Serialize(confirmation)}");
+
+                            var booking = JsonSerializer.Deserialize<TicketBooking>(consumeResult.Message.Value);
+
+                            _logger.LogInformation($"Processing booking: {booking.BookingId}");
+
+
+                            var confirmation = new BookingConfirmation
+                            {
+                                BookingId = booking.BookingId,
+                                EventId = booking.EventId,
+                                UserId = booking.UserId,
+                                Quantity = booking.Quantity,
+                                Status = "Confirmed",
+                                Message = "Booking confirmed successfully"
+                            };
+
+                            _logger.LogInformation($"Booking confirmed: {JsonSerializer.Serialize(confirmation)}");
+                        }
                     }
                 }
                 
