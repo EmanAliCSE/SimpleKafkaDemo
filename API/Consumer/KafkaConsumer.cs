@@ -21,7 +21,7 @@ namespace KafkaWebApiDemo.Services
                 AutoOffsetReset = AutoOffsetReset.Earliest
             };
             _consumer = new ConsumerBuilder<Ignore, string>(consumerConfig).Build();
-            _topic = _config["Kafka:BookingRequestTopic"];
+            _topic = _config["Kafka:Topic"];
         }
 
         protected override Task ExecuteAsync(CancellationToken stoppingToken)
