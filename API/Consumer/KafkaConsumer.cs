@@ -49,44 +49,45 @@ namespace KafkaWebApiDemo.Services
         //    });
         //}
 
-        protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+        protected override Task ExecuteAsync(CancellationToken stoppingToken)
         {
             _consumer.Subscribe(_topic);
-
-            while (!stoppingToken.IsCancellationRequested)
+            return Task.Run(() =>
             {
+
                 try
                 {
-                    var consumeResult = _consumer.Consume(stoppingToken);
-                    var booking = JsonSerializer.Deserialize<TicketBooking>(consumeResult.Message.Value);
-
-                    _logger.LogInformation($"Processing booking: {booking.BookingId}");
-
-                 
-                    var confirmation = new BookingConfirmation
+                    while (!stoppingToken.IsCancellationRequested)
                     {
-                        BookingId = booking.BookingId,
-                        EventId = booking.EventId,
-                        UserId = booking.UserId,
-                        Quantity = booking.Quantity,
-                        Status = "Confirmed",
-                        Message = "Booking confirmed successfully"
-                    };
+                        var consumeResult = _consumer.Consume(stoppingToken);
+                        var booking = JsonSerializer.Deserialize<TicketBooking>(consumeResult.Message.Value);
 
-                    _logger.LogInformation($"Booking confirmed: {JsonSerializer.Serialize(confirmation)}");
+                        _logger.LogInformation($"Processing booking: {booking.BookingId}");
+
+
+                        var confirmation = new BookingConfirmation
+                        {
+                            BookingId = booking.BookingId,
+                            EventId = booking.EventId,
+                            UserId = booking.UserId,
+                            Quantity = booking.Quantity,
+                            Status = "Confirmed",
+                            Message = "Booking confirmed successfully"
+                        };
+
+                        _logger.LogInformation($"Booking confirmed: {JsonSerializer.Serialize(confirmation)}");
+                    }
                 }
-                catch (OperationCanceledException)
-                {
-                    // Graceful shutdown
-                    break;
-                }
+                
                 catch (Exception ex)
                 {
                     _logger.LogError(ex, "Error processing booking");
+                    _consumer.Close();
                 }
-            }
+            });
+        
 
-            _consumer.Close();
+         
         }
     }
 }
