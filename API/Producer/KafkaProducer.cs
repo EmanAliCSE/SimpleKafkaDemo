@@ -19,7 +19,7 @@ namespace KafkaWebApiDemo.Services
         {
             var config = new ProducerConfig { BootstrapServers = _bootstrapServers };
 
-            using var producer = new ProducerBuilder<Null, string>(config).Build();
+            using var producer = new ProducerBuilder<Null, string>(config).Build();// NULL msg key , string msg type 
 
             var result = await producer.ProduceAsync(_topic, new Message<Null, string> { Value = message });
 

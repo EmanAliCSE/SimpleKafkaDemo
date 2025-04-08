@@ -21,7 +21,7 @@ namespace KafkaWebApiDemo.Services
             var consumerConfig = new ConsumerConfig
             {
                 BootstrapServers = bootstrapServers,
-                GroupId = "demo-consumer-group",
+                GroupId = _config["Kafka:GroupId"],
                 AutoOffsetReset = AutoOffsetReset.Earliest
             };
 
