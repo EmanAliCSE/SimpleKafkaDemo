@@ -1,4 +1,5 @@
 ﻿using Confluent.Kafka;
+using static Confluent.Kafka.ConfigPropertyNames;
 
 namespace KafkaWebApiDemo.Services
 {
@@ -6,27 +7,26 @@ namespace KafkaWebApiDemo.Services
     {
         private readonly IConfiguration _config;
         private readonly ILogger<KafkaConsumerService> _logger;
-
+        private readonly IConsumer<Ignore, string> _consumer;
+        private readonly string _topic;
         public KafkaConsumerService(IConfiguration config, ILogger<KafkaConsumerService> logger)
         {
             _config = config;
             _logger = logger;
+
+            var consumerConfig = new ConsumerConfig
+            {
+                BootstrapServers = _config["Kafka:BootstrapServers"],
+                GroupId = _config["Kafka:GroupId"],
+                AutoOffsetReset = AutoOffsetReset.Earliest
+            };
+            _consumer = new ConsumerBuilder<Ignore, string>(consumerConfig).Build();
+            _topic = _config["Kafka:BookingRequestTopic"];
         }
 
         protected override Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            var bootstrapServers = _config["Kafka:BootstrapServers"];
-            var topic = _config["Kafka:Topic"];
-
-            var consumerConfig = new ConsumerConfig
-            {
-                BootstrapServers = bootstrapServers,
-                GroupId = _config["Kafka:GroupId"],
-                AutoOffsetReset = AutoOffsetReset.Earliest
-            };
-
-            var consumer = new ConsumerBuilder<Ignore, string>(consumerConfig).Build();
-            consumer.Subscribe(topic);
+            _consumer.Subscribe(_topic);
 
             return Task.Run(() =>
             {
@@ -34,13 +34,15 @@ namespace KafkaWebApiDemo.Services
                 {
                     while (!stoppingToken.IsCancellationRequested)
                     {
-                        var result = consumer.Consume(stoppingToken);
+                        var result = _consumer.Consume(stoppingToken);
+
                         _logger.LogInformation($"Consumed: {result.Message.Value}");
                     }
                 }
                 catch (OperationCanceledException)
                 {
-                    consumer.Close();
+                    _consumer.Close();
+
                 }
             });
         }
