@@ -5,7 +5,8 @@ using static Confluent.Kafka.ConfigPropertyNames;
 
 namespace KafkaWebApiDemo.Services
 {
-    public class KafkaProducerService : IDisposable
+    public class KafkaProducerService
+        //: IDisposable
     {
         private readonly IConfiguration _config;
         private readonly string _topic;
@@ -43,10 +44,10 @@ namespace KafkaWebApiDemo.Services
                 Console.WriteLine($"Delivery failed: {ex.Error.Reason}");
             }
         }
-        public void Dispose()
-        {
-            _producer.Flush(TimeSpan.FromSeconds(10));
-            _producer.Dispose();
-        }
+        //public void dispose()
+        //{
+        //    _producer.flush(timespan.fromseconds(10));
+        //    _producer.dispose();
+        //}
     }
 }

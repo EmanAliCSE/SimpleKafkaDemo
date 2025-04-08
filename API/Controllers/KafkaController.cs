@@ -1,4 +1,5 @@
-﻿using KafkaWebApiDemo.Services;
+﻿using API.Models;
+using KafkaWebApiDemo.Services;
 using Microsoft.AspNetCore.Mvc;
 
 namespace KafkaWebApiDemo.Controllers
@@ -19,6 +20,26 @@ namespace KafkaWebApiDemo.Controllers
         {
             var result = await _producerService.SendMessageAsync(message);
             return Ok(result);
+        }
+
+        [HttpPost("CreateBooking")]
+        public async Task<IActionResult> CreateBooking([FromBody] TicketBooking booking)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            try
+            {
+                await _producerService.ProduceBookingRequestAsync(booking);
+                return Accepted(new { booking.BookingId, Status = "Processing" });
+            }
+            catch (Exception ex)
+            {
+              
+                return StatusCode(500, "Error processing your booking");
+            }
         }
     }
 }
