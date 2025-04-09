@@ -16,12 +16,7 @@ namespace KafkaWebApiDemo.Controllers
             _producerService = producerService;
         }
 
-        [HttpPost("send")]
-        public async Task<IActionResult> Send([FromBody] string message)
-        {
-            var result = await _producerService.SendMessageAsync(message);
-            return Ok(result);
-        }
+     
 
         [HttpPost("CreateBooking")]
         public async Task<IActionResult> CreateBooking([FromBody] TicketBooking booking)

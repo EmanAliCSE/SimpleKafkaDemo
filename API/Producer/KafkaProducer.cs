@@ -1,53 +1,75 @@
-﻿using API.Models;
-using System.Text.Json;
+﻿// Services/KafkaProducerService.cs
+using API.Models;
 using Confluent.Kafka;
-using static Confluent.Kafka.ConfigPropertyNames;
+using Infrastructure.Services;
+using Microsoft.Extensions.Configuration;
+using System.Text.Json;
 
-namespace KafkaWebApiDemo.Services
+public class KafkaProducerService : IDisposable
 {
-    public class KafkaProducerService
-        //: IDisposable
+    private readonly IProducer<Null, string> _producer;
+    private readonly OutboxService _outboxService;
+    private readonly ILogger<KafkaProducerService> _logger;
+    private readonly string _bookingRequestTopic;
+    private readonly string _bookingConfirmationTopic;
+
+    public KafkaProducerService(
+        IConfiguration configuration,
+        OutboxService outboxService,
+        ILogger<KafkaProducerService> logger)
     {
-        private readonly IConfiguration _config;
-        private readonly string _topic;
-        private readonly IProducer<Null, string> _producer;
-
-        public KafkaProducerService(IConfiguration config)
+        var producerConfig = new ProducerConfig
         {
-            _config = config;
+            BootstrapServers = configuration["Kafka:BootstrapServers"],
+            EnableIdempotence = true,
+            MessageSendMaxRetries = 3,
+            Acks = Acks.All
+        };
+        _producer = new ProducerBuilder<Null, string>(producerConfig).Build();
+        _outboxService = outboxService;
+        _logger = logger;
+        _bookingRequestTopic = configuration["Kafka:Topic"];
+    }
 
-            _topic = _config["Kafka:Topic"];
-            var producerConfig = new ProducerConfig
-            {
-                BootstrapServers = _config["Kafka:BootstrapServers"]
-            };
-            _producer = new ProducerBuilder<Null, string>(producerConfig).Build();
-        }
-
-        public async Task<string> SendMessageAsync(string message)
+    // For direct publishing (if needed)
+    public async Task ProduceAsync(string topic, string message)
+    {
+        try
         {
-            var result = await _producer.ProduceAsync(_topic, new Message<Null, string> { Value = message });
-
-            return $"Sent to: {result.TopicPartitionOffset}";
+            await _producer.ProduceAsync(_bookingRequestTopic, new Message<Null, string>
+            {
+                Value = message,
+                Headers = new Headers
+                    {
+                        { "message-type", System.Text.Encoding.UTF8.GetBytes("booking-request") }
+                    }
+            });
+            _logger.LogDebug($"Produced message to {topic}: {message}");
         }
-
-        public async Task ProduceBookingRequestAsync(TicketBooking booking)
+        catch (ProduceException<Null, string> ex)
         {
-            try
-            {
-                var message = JsonSerializer.Serialize(booking);
-                await _producer.ProduceAsync(_topic, new Message<Null, string> { Value = message });
-                Console.WriteLine($"Produced booking request: {message}");
-            }
-            catch (ProduceException<Null, string> ex)
-            {
-                Console.WriteLine($"Delivery failed: {ex.Error.Reason}");
-            }
+            _logger.LogError(ex, $"Delivery failed for topic {topic}: {ex.Error.Reason}");
+            throw;
         }
-        //public void dispose()
-        //{
-        //    _producer.flush(timespan.fromseconds(10));
-        //    _producer.dispose();
-        //}
+    }
+
+    // Outbox pattern methods
+    public async Task ProduceBookingRequestAsync(TicketBooking booking)
+    {
+        await _outboxService.AddMessageAsync("BookingCreated", booking);
+        _logger.LogInformation($"Added booking request to outbox: {booking.Id}");
+    }
+
+    //public async Task ProduceBookingConfirmationAsync(BookingConfirmation confirmation)
+    //{
+    //    await _outboxService.AddMessageAsync("BookingConfirmed", confirmation);
+    //    _logger.LogInformation($"Added booking confirmation to outbox: {confirmation.BookingId}");
+    //}
+
+    public void Dispose()
+    {
+        _producer.Flush(TimeSpan.FromSeconds(10));
+        _producer.Dispose();
+        GC.SuppressFinalize(this);
     }
 }
