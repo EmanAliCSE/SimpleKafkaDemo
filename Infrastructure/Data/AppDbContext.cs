@@ -16,18 +16,18 @@ namespace Domain.Data
         {
         }
         public DbSet<TicketBooking> Bookings { get; set; }
-        public DbSet<BookingConfirmation> BookingConfirmations { get; set; }
+        //public DbSet<BookingConfirmation> BookingConfirmations { get; set; }
 
-        protected override void OnModelCreating(ModelBuilder modelBuilder)
-        {
-            modelBuilder.Entity<TicketBooking>(entity =>
-            {
-                // Configure the one-to-one relationship
-                entity.HasOne(e => e.BookingConfirmation)
-                      .WithOne(e => e.TicketBooking)
-                      .HasForeignKey<BookingConfirmation>(e => e.BookingId)
-                      .OnDelete(DeleteBehavior.Cascade); 
-            });
-        }
+        //protected override void OnModelCreating(ModelBuilder modelBuilder)
+        //{
+        //    modelBuilder.Entity<TicketBooking>(entity =>
+        //    {
+        //        // Configure the one-to-one relationship
+        //        //entity.HasOne(e => e.BookingConfirmation)
+        //        //      .WithOne(e => e.TicketBooking)
+        //        //      .HasForeignKey<BookingConfirmation>(e => e.BookingId)
+        //        //      .OnDelete(DeleteBehavior.Cascade); 
+        //    });
+        //}
     }
 }

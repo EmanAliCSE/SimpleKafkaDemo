@@ -38,7 +38,7 @@ namespace KafkaWebApiDemo.Controllers
             }
             catch (Exception ex)
             {
-              
+
                 return StatusCode(500, "Error processing your booking");
             }
         }

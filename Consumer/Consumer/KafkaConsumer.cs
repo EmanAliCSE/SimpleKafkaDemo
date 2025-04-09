@@ -75,52 +75,31 @@ namespace KafkaWebApiDemo.Services
                     else
                     {
                         var booking = JsonSerializer.Deserialize<TicketBooking>(consumeResult.Message.Value);
-
-                        using (var scope = _serviceProvider.CreateScope())
+                        if (booking != null)
                         {
-                            var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-
-                            // Check if booking exists
-                            var existingBooking = await dbContext.Bookings
-                                .Include(b => b.BookingConfirmation) // Include confirmation if it exists
-                                .FirstOrDefaultAsync(b => b.Id == booking.Id, stoppingToken);
-
-                            if (existingBooking != null)
+                            using (var scope = _serviceProvider.CreateScope())
                             {
-                                _logger.LogWarning($"Duplicate booking detected: {booking.Id}");
-                                continue;
+                                var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+                                // Check if booking exists
+                                var existingBooking = await dbContext.Bookings
+
+                                    .FirstOrDefaultAsync(b => b.Id == booking.Id, stoppingToken);
+
+                                if (existingBooking != null)
+                                {
+                                    _logger.LogWarning($"Duplicate booking detected: {booking.Id}");
+                                    continue;
+                                }
+
+
+                                booking.Status = BookingStatus.Processing;
+                                dbContext.Bookings.Add(booking);
+                                await dbContext.SaveChangesAsync(stoppingToken);
+
+
+                                _logger.LogInformation($"Booking confirmed: {booking.Id}");
                             }
-
-                            // Process the booking
-                            booking.Status = BookingStatus.Processing;
-                            dbContext.Bookings.Add(booking);
-                            await dbContext.SaveChangesAsync(stoppingToken);
-
-                            // Simulate processing time
-                            await Task.Delay(1000, stoppingToken);
-
-                            // Create confirmation
-                            var confirmation = new BookingConfirmation
-                            {
-                                BookingId = booking.Id,
-                                EventId = booking.EventId,
-                                UserId = booking.UserId,
-                                Quantity = booking.Quantity,
-                                Status = BookingStatus.Confirmed,
-                                Message = "Booking confirmed successfully"
-                            };
-
-                            // Add confirmation to database
-                            dbContext.BookingConfirmations.Add(confirmation);
-
-                            // Update booking status
-                            booking.Status =BookingStatus.Confirmed;
-                            booking.ProcessedTime = DateTime.UtcNow;
-                            booking.ConfirmationMessage = confirmation.Message;
-
-                            await dbContext.SaveChangesAsync(stoppingToken);
-
-                            _logger.LogInformation($"Booking confirmed: {booking.Id}");
                         }
                     }
                 }

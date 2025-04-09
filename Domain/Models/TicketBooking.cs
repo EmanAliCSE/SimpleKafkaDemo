@@ -13,7 +13,7 @@ namespace API.Models
         public DateTime? ProcessedTime { get; set; }
         public string? ConfirmationMessage { get; set; }
 
-        public virtual BookingConfirmation? BookingConfirmation { get; set; }
+      //  public virtual BookingConfirmation? BookingConfirmation { get; set; }
 
     }
 }
