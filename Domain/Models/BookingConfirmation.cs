@@ -2,6 +2,7 @@
 {
     public class BookingConfirmation
     {
+        public int Id { get; set; }
         public string BookingId { get; set; }
         public string EventId { get; set; }
         public string UserId { get; set; }

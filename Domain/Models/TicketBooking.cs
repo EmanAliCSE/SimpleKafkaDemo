@@ -2,6 +2,7 @@
 {
     public class TicketBooking
     {
+        public int Id { get; set; }
         public string BookingId { get; set; } = Guid.NewGuid().ToString();
         public string EventId { get; set; }
         public string UserId { get; set; }
