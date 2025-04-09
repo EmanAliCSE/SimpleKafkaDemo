@@ -17,7 +17,9 @@ builder.Services.AddHostedService<KafkaConsumerService>();
 
 var app = builder.Build();
 
+app.UseRouting();
 app.UseSwagger();
 app.UseSwaggerUI();
 app.MapControllers();
+
 app.Run();
