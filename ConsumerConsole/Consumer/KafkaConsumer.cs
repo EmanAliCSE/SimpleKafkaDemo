@@ -4,13 +4,11 @@ using Confluent.Kafka;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using API.Models;
-using System;
-using Domain.Data;
 using Microsoft.Extensions.DependencyInjection;
+using API.Models;
+using Domain.Data;
 using Microsoft.EntityFrameworkCore;
 using Domain.Enums;
-using Domain.Models;
 
 namespace KafkaWebApiDemo.Services
 {
@@ -29,14 +27,18 @@ namespace KafkaWebApiDemo.Services
             _scopeFactory = scopeFactory;
             var consumerConfig = new ConsumerConfig
             {
-                BootstrapServers = _config["Kafka:BootstrapServers"],
-                GroupId = _config["Kafka:GroupId"],
-               
+                BootstrapServers = "localhost:9092",
+                GroupId = "my-consumer-group",
+                //BootstrapServers = _config["Kafka:BootstrapServers"],
+                //GroupId = _config["Kafka:GroupId"],
+                EnablePartitionEof=true,
                 AutoOffsetReset = AutoOffsetReset.Earliest,
                 EnableAutoCommit = false
             };
             _consumer = new ConsumerBuilder<Null, string>(consumerConfig).Build();
-            _topic = _config["Kafka:Topic"];
+          
+            _topic = "test-topic";
+           // _topic = _config["Kafka:Topic"];
         }
         // Services/KafkaConsumerService.cs
         protected override Task ExecuteAsync(CancellationToken stoppingToken)
@@ -59,15 +61,15 @@ namespace KafkaWebApiDemo.Services
 
                         using var scope = _scopeFactory.CreateScope();
                         var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-
-                        bool result = await ProcessBookingAsync(dbContext, booking);
+                      
+                     bool result= await  ProcessBookingAsync(dbContext, booking);
                         if (result)
                         {
                             _consumer.Commit(consumeResult);
                         }
-
+                       
                     }
-
+                   
                     catch (Exception ex)
                     {
                         _logger.LogError(ex, "Error processing message");
@@ -85,8 +87,8 @@ namespace KafkaWebApiDemo.Services
             try
             {
                 // check obj in outbox 
-                var outboxMsg = await dbContext.OutboxMessages
-                     .FirstOrDefaultAsync(a => a.Key == booking.Id.ToString() && a.Topic == _topic && a.Status == OutBoxStatus.Send);
+               var outboxMsg= await dbContext.OutboxMessages
+                    .FirstOrDefaultAsync(a => a.Key == booking.Id.ToString() && a.Topic == _topic && a.Status == OutBoxStatus.Send);
 
                 if (outboxMsg != null)
                 {

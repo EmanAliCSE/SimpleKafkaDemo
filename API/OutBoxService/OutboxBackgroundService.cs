@@ -44,7 +44,7 @@ public class OutboxProcessorService : BackgroundService
                         message.Status = Domain.Enums.OutBoxStatus.Send;
                        
                     }
-                    catch (Exception ex)
+                    catch (ProduceException<Null,string> ex)
                     {
                         message.Error = ex.Message;
                         message.Status = Domain.Enums.OutBoxStatus.Failed;
@@ -59,7 +59,7 @@ public class OutboxProcessorService : BackgroundService
                 _logger.LogError(ex, "Error in outbox processor");
             }
 
-            await Task.Delay(_interval, stoppingToken);
+           // await Task.Delay(5000, stoppingToken);
         }
     }
 }

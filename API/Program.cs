@@ -35,8 +35,8 @@ builder.Services.AddHostedService<OutboxProcessorService>();
 
 builder.Services.AddHostedService<OutboxProcessorService>();
 
-builder.Logging.ClearProviders();
-builder.Logging.AddConsole();
+//builder.Logging.ClearProviders();
+//builder.Logging.AddConsole();
 
 var app = builder.Build();
 
