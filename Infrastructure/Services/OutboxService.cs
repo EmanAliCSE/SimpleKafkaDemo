@@ -24,6 +24,7 @@ namespace Infrastructure.Services
         {
             var outboxMessage = new OutboxMessage
             {
+                
                 Type = type,
                 Content = JsonSerializer.Serialize(message)
             };

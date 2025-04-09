@@ -20,13 +20,13 @@ namespace KafkaWebApiDemo.Services
         private readonly ILogger<KafkaConsumerService> _logger;
         private readonly IConsumer<Ignore, string> _consumer;
         private readonly string _topic;
-        private readonly IServiceProvider _serviceProvider;
+        private readonly IServiceScopeFactory _scopeFactory;
 
-        public KafkaConsumerService(IConfiguration config, ILogger<KafkaConsumerService> logger, IServiceProvider serviceProvider)
+        public KafkaConsumerService(IConfiguration config, ILogger<KafkaConsumerService> logger,IServiceScopeFactory scopeFactory)
         {
             _config = config;
             _logger = logger;
-            _serviceProvider = serviceProvider;
+            _scopeFactory = scopeFactory;
             var consumerConfig = new ConsumerConfig
             {
                 BootstrapServers = _config["Kafka:BootstrapServers"],
@@ -41,7 +41,7 @@ namespace KafkaWebApiDemo.Services
         protected override Task ExecuteAsync(CancellationToken stoppingToken)
         {
             _consumer.Subscribe(_topic);
-            return Task.Run(() =>
+            return Task.Run(async () =>
             {
 
                 while (!stoppingToken.IsCancellationRequested)
@@ -51,11 +51,10 @@ namespace KafkaWebApiDemo.Services
                         var consumeResult = _consumer.Consume(stoppingToken);
                         var booking = JsonSerializer.Deserialize<TicketBooking>(consumeResult.Message.Value);
 
-                        using var scope = _serviceProvider.CreateScope();
+                        using var scope = _scopeFactory.CreateScope();
                         var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-
-                        // Process and save booking
-                         ProcessBookingAsync(dbContext, booking);
+                      
+                        ProcessBookingAsync(dbContext, booking);
 
                         _consumer.Commit(consumeResult);
                     }
@@ -75,24 +74,15 @@ namespace KafkaWebApiDemo.Services
 
             try
             {
-                // 1. Save booking to consumer's database
-                //dbContext.Bookings.Add(booking);
-                //await dbContext.SaveChangesAsync();
+                // check obj in outbox 
+               var outboxMsg= await dbContext.OutboxMessages
+                    .FirstOrDefaultAsync(a => a.Key == booking.Id.ToString() && a.Topic == _topic && a.Status != OutBoxStatus.Send);
 
-                // 2. Create confirmation event
-                //var confirmation = new BookingConfirmation
-                //{
-                //    BookingId = booking.BookingId,
-                //    Status = "Confirmed"
-                //};
-
-                // 3. Add to outbox (for any downstream events)
-                dbContext.OutboxMessages.Add(new OutboxMessage
+                if (outboxMsg != null)
                 {
-                    Type = "BookingConfirmed",
-                    Content = JsonSerializer.Serialize(booking)
-                });
-
+                    outboxMsg.Status = OutBoxStatus.Consumed;
+                    outboxMsg.ProcessedAt = DateTime.Now;
+                }
                 await dbContext.SaveChangesAsync();
                 await transaction.CommitAsync();
             }

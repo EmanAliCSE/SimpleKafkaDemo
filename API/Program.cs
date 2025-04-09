@@ -24,10 +24,15 @@ builder.Services.AddSingleton<IProducer<Null, string>>(sp =>
         BootstrapServers = builder.Configuration["Kafka:BootstrapServers"]
     }).Build());
 
-
-//builder.Services.AddSingleton<KafkaProducerService>();
-builder.Services.AddHostedService<KafkaConsumerService>();
 builder.Services.AddScoped<IOutboxService, OutboxService>();
+
+builder.Services.AddScoped<KafkaProducerService>();
+
+builder.Services.AddHostedService<KafkaConsumerService>();
+builder.Services.AddHostedService<OutboxProcessorService>();
+
+
+
 builder.Services.AddHostedService<OutboxProcessorService>();
 
 builder.Logging.ClearProviders();

@@ -10,6 +10,8 @@ namespace Domain.Models
     public class OutboxMessage
     {
         public Guid Id { get; set; } = Guid.NewGuid();
+        public string Key { get; set; }
+        public string Topic { get; set; }
         public OutBoxStatus Status { get; set; }
         public string Type { get; set; }
         public string Content { get; set; }

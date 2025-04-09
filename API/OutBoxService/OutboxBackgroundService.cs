@@ -8,13 +8,14 @@ public class OutboxProcessorService : BackgroundService
     private readonly IServiceProvider _serviceProvider;
     private readonly ILogger<OutboxProcessorService> _logger;
     private readonly TimeSpan _interval = TimeSpan.FromSeconds(5);
-
+    private readonly string _topic;
     public OutboxProcessorService(
-        IServiceProvider serviceProvider,
+        IServiceProvider serviceProvider, IConfiguration config, 
         ILogger<OutboxProcessorService> logger)
     {
         _serviceProvider = serviceProvider;
         _logger = logger;
+        _topic = config["Kafka:Topic"];
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -28,28 +29,30 @@ public class OutboxProcessorService : BackgroundService
                 var producer = scope.ServiceProvider.GetRequiredService<IProducer<Null, string>>();
 
                 var messages = await dbContext.OutboxMessages
-                    .Where(m => m.ProcessedAt == null)
+                    .Where(m => m.Status ==  Domain.Enums.OutBoxStatus.Pending)
                     .OrderBy(m => m.CreatedAt)
-                    .Take(100)
+                     .Take(10)
                     .ToListAsync(stoppingToken);
 
                 foreach (var message in messages)
                 {
                     try
                     {
-                        await producer.ProduceAsync("ticket-booking-requests",
+                        await producer.ProduceAsync(_topic,
                             new Message<Null, string> { Value = message.Content });
-
-                        message.ProcessedAt = DateTime.UtcNow;
-                        await dbContext.SaveChangesAsync(stoppingToken);
+                      
+                        message.Status = Domain.Enums.OutBoxStatus.Send;
+                       
                     }
                     catch (Exception ex)
                     {
                         message.Error = ex.Message;
+                        message.Status = Domain.Enums.OutBoxStatus.Failed;
                         await dbContext.SaveChangesAsync(stoppingToken);
                         _logger.LogError(ex, "Error processing outbox message");
                     }
                 }
+                await dbContext.SaveChangesAsync();
             }
             catch (Exception ex)
             {

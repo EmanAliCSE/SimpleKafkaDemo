@@ -8,8 +8,9 @@ namespace Domain.Enums
 {
     public enum OutBoxStatus
     {
-       Created,
-       Confirmed,
+       Pending,
+       Send,
+       Consumed,
         Failed
      
     }

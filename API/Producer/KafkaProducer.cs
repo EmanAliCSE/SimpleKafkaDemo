@@ -1,6 +1,9 @@
 ﻿// Services/KafkaProducerService.cs
 using API.Models;
 using Confluent.Kafka;
+using Domain.Data;
+using Domain.Interfaces;
+using Domain.Models;
 using Infrastructure.Services;
 using Microsoft.Extensions.Configuration;
 using System.Text.Json;
@@ -8,14 +11,14 @@ using System.Text.Json;
 public class KafkaProducerService : IDisposable
 {
     private readonly IProducer<Null, string> _producer;
-    private readonly OutboxService _outboxService;
+    private readonly IOutboxService _outboxService;
     private readonly ILogger<KafkaProducerService> _logger;
     private readonly string _bookingRequestTopic;
-    private readonly string _bookingConfirmationTopic;
+    private readonly IServiceScopeFactory _scopeFactory;
 
     public KafkaProducerService(
         IConfiguration configuration,
-        OutboxService outboxService,
+        IOutboxService outboxService, IServiceScopeFactory scopeFactory,
         ILogger<KafkaProducerService> logger)
     {
         var producerConfig = new ProducerConfig
@@ -28,6 +31,7 @@ public class KafkaProducerService : IDisposable
         _producer = new ProducerBuilder<Null, string>(producerConfig).Build();
         _outboxService = outboxService;
         _logger = logger;
+        _scopeFactory = scopeFactory;
         _bookingRequestTopic = configuration["Kafka:Topic"];
     }
 
@@ -53,19 +57,30 @@ public class KafkaProducerService : IDisposable
         }
     }
 
-    // Outbox pattern methods
     public async Task ProduceBookingRequestAsync(TicketBooking booking)
     {
-        await _outboxService.AddMessageAsync("BookingCreated", booking);
+        if(booking==null)
+        { throw new ArgumentNullException(nameof(booking)); }
+        using var scope = _scopeFactory.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var outboxMessage = new OutboxMessage
+        {
+            Key = booking.Id.ToString(),
+            Topic = _bookingRequestTopic,
+            Type = nameof(TicketBooking),
+            Status = Domain.Enums.OutBoxStatus.Pending,
+            Content = JsonSerializer.Serialize(booking)
+        };
+        dbContext.Bookings.Add(booking);
+        dbContext.OutboxMessages.Add(outboxMessage);
+
+        await dbContext.SaveChangesAsync();
+
+       // await _outboxService.AddMessageAsync("BookingCreated", booking);
         _logger.LogInformation($"Added booking request to outbox: {booking.Id}");
     }
 
-    //public async Task ProduceBookingConfirmationAsync(BookingConfirmation confirmation)
-    //{
-    //    await _outboxService.AddMessageAsync("BookingConfirmed", confirmation);
-    //    _logger.LogInformation($"Added booking confirmation to outbox: {confirmation.BookingId}");
-    //}
-
+   
     public void Dispose()
     {
         _producer.Flush(TimeSpan.FromSeconds(10));
