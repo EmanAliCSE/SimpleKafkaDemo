@@ -5,6 +5,11 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using API.Models;
+using System;
+using Domain.Data;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.EntityFrameworkCore;
+using Domain.Enums;
 
 namespace KafkaWebApiDemo.Services
 {
@@ -14,6 +19,8 @@ namespace KafkaWebApiDemo.Services
         private readonly ILogger<KafkaConsumerService> _logger;
         private readonly IConsumer<Ignore, string> _consumer;
         private readonly string _topic;
+        private readonly IServiceProvider _serviceProvider;
+
         public KafkaConsumerService(IConfiguration config, ILogger<KafkaConsumerService> logger)
         {
             _config = config;
@@ -52,53 +59,77 @@ namespace KafkaWebApiDemo.Services
         //    });
         //}
 
-        protected override Task ExecuteAsync(CancellationToken stoppingToken)
+        protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
             _consumer.Subscribe(_topic);
-            return Task.Run(() =>
+
+            try
             {
-
-                try
+                while (!stoppingToken.IsCancellationRequested)
                 {
-                    while (!stoppingToken.IsCancellationRequested)
+                    var consumeResult = _consumer.Consume(stoppingToken);
+                    if (consumeResult.Message.Value is string)
                     {
-                        var consumeResult = _consumer.Consume(stoppingToken);
-                        if (consumeResult.Message.Value is string)
+                        _logger.LogInformation($"Consumed: {consumeResult.Message.Value}");
+                    }
+                    else
+                    {
+                        var booking = JsonSerializer.Deserialize<TicketBooking>(consumeResult.Message.Value);
+
+                        using (var scope = _serviceProvider.CreateScope())
                         {
-                            _logger.LogInformation($"Consumed: {consumeResult.Message.Value}");
-                        }
-                        else
-                        {
+                            var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
+                            // Check if booking exists
+                            var existingBooking = await dbContext.Bookings
+                                .Include(b => b.BookingConfirmation) // Include confirmation if it exists
+                                .FirstOrDefaultAsync(b => b.Id == booking.Id, stoppingToken);
 
-                            var booking = JsonSerializer.Deserialize<TicketBooking>(consumeResult.Message.Value);
+                            if (existingBooking != null)
+                            {
+                                _logger.LogWarning($"Duplicate booking detected: {booking.Id}");
+                                continue;
+                            }
 
-                            _logger.LogInformation($"Processing booking: {booking.BookingId}");
+                            // Process the booking
+                            booking.Status = BookingStatus.Processing;
+                            dbContext.Bookings.Add(booking);
+                            await dbContext.SaveChangesAsync(stoppingToken);
 
+                            // Simulate processing time
+                            await Task.Delay(1000, stoppingToken);
 
+                            // Create confirmation
                             var confirmation = new BookingConfirmation
                             {
-                                BookingId = booking.BookingId,
+                                BookingId = booking.Id,
                                 EventId = booking.EventId,
                                 UserId = booking.UserId,
                                 Quantity = booking.Quantity,
-                                Status = "Confirmed",
+                                Status = BookingStatus.Confirmed,
                                 Message = "Booking confirmed successfully"
                             };
 
-                            _logger.LogInformation($"Booking confirmed: {JsonSerializer.Serialize(confirmation)}");
+                            // Add confirmation to database
+                            dbContext.BookingConfirmations.Add(confirmation);
+
+                            // Update booking status
+                            booking.Status =BookingStatus.Confirmed;
+                            booking.ProcessedTime = DateTime.UtcNow;
+                            booking.ConfirmationMessage = confirmation.Message;
+
+                            await dbContext.SaveChangesAsync(stoppingToken);
+
+                            _logger.LogInformation($"Booking confirmed: {booking.Id}");
                         }
                     }
                 }
-                
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Error processing booking");
-                    _consumer.Close();
-                }
-            });
-        
-
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error processing booking");
+                _consumer.Close();
+            }
          
         }
     }
