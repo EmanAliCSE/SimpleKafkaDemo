@@ -55,6 +55,10 @@ namespace KafkaWebApiDemo.Services
             {
                 Console.WriteLine($"Delivery failed: {ex.Error.Reason}");
             }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Delivery failed: {ex.Message}");
+            }
         }
         //public void dispose()
         //{
