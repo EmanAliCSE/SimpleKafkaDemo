@@ -2,6 +2,7 @@
 using System.Text.Json;
 using Confluent.Kafka;
 using static Confluent.Kafka.ConfigPropertyNames;
+using Domain.Data;
 
 namespace KafkaWebApiDemo.Services
 {
@@ -11,11 +12,12 @@ namespace KafkaWebApiDemo.Services
         private readonly IConfiguration _config;
         private readonly string _topic;
         private readonly IProducer<Null, string> _producer;
+        private readonly IServiceScopeFactory _scopeFactory;
 
-        public KafkaProducerService(IConfiguration config)
+        public KafkaProducerService(IConfiguration config , IServiceScopeFactory scopeFactory)
         {
             _config = config;
-
+            _scopeFactory = scopeFactory;
             _topic = _config["Kafka:Topic"];
             var producerConfig = new ProducerConfig
             {
@@ -35,7 +37,17 @@ namespace KafkaWebApiDemo.Services
         {
             try
             {
+
                 var message = JsonSerializer.Serialize(booking);
+
+                // Save booking to database
+                using var scope = _scopeFactory.CreateScope();
+                var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+
+                dbContext.Bookings.Add(booking);
+                await dbContext.SaveChangesAsync();
+
                 await _producer.ProduceAsync(_topic, new Message<Null, string> { Value = message });
                 Console.WriteLine($"Produced booking request: {message}");
             }

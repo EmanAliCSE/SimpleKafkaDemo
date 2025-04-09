@@ -33,7 +33,7 @@ namespace KafkaWebApiDemo.Controllers
             try
             {
                 await _producerService.ProduceBookingRequestAsync(booking);
-                return Accepted(new { booking.BookingId, Status = "Processing" });
+                return Accepted(new { booking.Id, Status = "Processing" });
             }
             catch (Exception ex)
             {

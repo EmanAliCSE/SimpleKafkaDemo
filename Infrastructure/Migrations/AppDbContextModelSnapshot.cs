@@ -24,15 +24,9 @@ namespace Infrastructure.Migrations
 
             modelBuilder.Entity("API.Models.TicketBooking", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("BookingId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime>("BookingTime")
                         .HasColumnType("datetime2");

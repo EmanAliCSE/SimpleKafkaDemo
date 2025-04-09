@@ -73,20 +73,20 @@ namespace KafkaWebApiDemo.Services
 
                             var booking = JsonSerializer.Deserialize<TicketBooking>(consumeResult.Message.Value);
 
-                            _logger.LogInformation($"Processing booking: {booking.BookingId}");
+                            _logger.LogInformation($"Processing booking: {booking.Id}");
 
 
-                            var confirmation = new BookingConfirmation
-                            {
-                                BookingId = booking.BookingId,
-                                EventId = booking.EventId,
-                                UserId = booking.UserId,
-                                Quantity = booking.Quantity,
-                                Status = "Confirmed",
-                                Message = "Booking confirmed successfully"
-                            };
+                            //var confirmation = new BookingConfirmation
+                            //{
+                            //    BookingId = booking.id,
+                            //    EventId = booking.EventId,
+                            //    UserId = booking.UserId,
+                            //    Quantity = booking.Quantity,
+                            //    Status = "Confirmed",
+                            //    Message = "Booking confirmed successfully"
+                            //};
 
-                            _logger.LogInformation($"Booking confirmed: {JsonSerializer.Serialize(confirmation)}");
+                            _logger.LogInformation($"Booking confirmed: {JsonSerializer.Serialize(booking)}");
                         }
                     }
                 }
