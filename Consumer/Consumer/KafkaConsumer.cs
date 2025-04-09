@@ -38,32 +38,36 @@ namespace KafkaWebApiDemo.Services
             _topic = _config["Kafka:Topic"];
         }
         // Services/KafkaConsumerService.cs
-        protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+        protected override Task ExecuteAsync(CancellationToken stoppingToken)
         {
             _consumer.Subscribe(_topic);
-
-            while (!stoppingToken.IsCancellationRequested)
+            return Task.Run(() =>
             {
-                try
+
+                while (!stoppingToken.IsCancellationRequested)
                 {
-                    var consumeResult = _consumer.Consume(stoppingToken);
-                    var booking = JsonSerializer.Deserialize<TicketBooking>(consumeResult.Message.Value);
+                    try
+                    {
+                        var consumeResult = _consumer.Consume(stoppingToken);
+                        var booking = JsonSerializer.Deserialize<TicketBooking>(consumeResult.Message.Value);
 
-                    using var scope = _serviceProvider.CreateScope();
-                    var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+                        using var scope = _serviceProvider.CreateScope();
+                        var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
-                    // Process and save booking
-                    await ProcessBookingAsync(dbContext, booking);
+                        // Process and save booking
+                         ProcessBookingAsync(dbContext, booking);
 
-                    _consumer.Commit(consumeResult);
+                        _consumer.Commit(consumeResult);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Error processing message");
+                    }
                 }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Error processing message");
-                }
-            }
 
-            _consumer.Close();
+                _consumer.Close();
+            });
+
         }
         private async Task ProcessBookingAsync(AppDbContext dbContext, TicketBooking booking)
         {
@@ -72,8 +76,8 @@ namespace KafkaWebApiDemo.Services
             try
             {
                 // 1. Save booking to consumer's database
-                dbContext.Bookings.Add(booking);
-                await dbContext.SaveChangesAsync();
+                //dbContext.Bookings.Add(booking);
+                //await dbContext.SaveChangesAsync();
 
                 // 2. Create confirmation event
                 //var confirmation = new BookingConfirmation
