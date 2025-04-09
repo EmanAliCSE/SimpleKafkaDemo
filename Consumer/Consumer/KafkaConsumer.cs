@@ -1,7 +1,6 @@
 ﻿
 using System.Text.Json;
 using Confluent.Kafka;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using API.Models;
@@ -10,6 +9,7 @@ using Domain.Data;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.EntityFrameworkCore;
 using Domain.Enums;
+using Microsoft.Extensions.Hosting;
 
 namespace KafkaWebApiDemo.Services
 {
