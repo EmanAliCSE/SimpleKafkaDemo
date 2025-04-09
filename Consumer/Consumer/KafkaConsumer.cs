@@ -1,7 +1,10 @@
-﻿using API.Models;
+﻿
 using System.Text.Json;
 using Confluent.Kafka;
-using static Confluent.Kafka.ConfigPropertyNames;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
+using API.Models;
 
 namespace KafkaWebApiDemo.Services
 {
