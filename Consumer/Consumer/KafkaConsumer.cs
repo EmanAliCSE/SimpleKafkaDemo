@@ -52,11 +52,11 @@ namespace KafkaWebApiDemo.Services
                         var consumeResult = _consumer.Consume(stoppingToken);
                         if (consumeResult.IsPartitionEOF)
                         {
-                            _logger.LogError("Error", "No msgs");
+                            _logger.LogError("IsPartitionEOF", "No msgs");
                             return;
                         }
                         var booking = JsonSerializer.Deserialize<TicketBooking>(consumeResult.Message.Value);
-
+                       
                         using var scope = _scopeFactory.CreateScope();
                         var uow = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
 
@@ -104,6 +104,7 @@ namespace KafkaWebApiDemo.Services
                 throw;
             }
         }
+
     }
     //protected override Task ExecuteAsync(CancellationToken stoppingToken)
     //{

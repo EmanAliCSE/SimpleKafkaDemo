@@ -1,4 +1,5 @@
-﻿using API.Models;
+﻿using API.DTO;
+using API.Models;
 using Domain.Enums;
 using KafkaWebApiDemo.Services;
 using Microsoft.AspNetCore.Mvc;
@@ -19,7 +20,7 @@ namespace KafkaWebApiDemo.Controllers
      
 
         [HttpPost("CreateBooking")]
-        public async Task<IActionResult> CreateBooking([FromBody] TicketBooking booking)
+        public async Task<IActionResult> CreateBooking([FromBody] TicketBookingDTO booking)
         {
             if (!ModelState.IsValid)
             {
@@ -28,8 +29,8 @@ namespace KafkaWebApiDemo.Controllers
 
             try
             {
-                await _producerService.ProduceBookingRequestAsync(booking);
-                return Accepted(new { booking.Id, Status = BookingStatus.Processing });
+               var obj= await _producerService.ProduceBookingRequestAsync(booking);
+                return Accepted(new {Id=obj.Id, Status = obj.Status});
             }
             catch (Exception ex)
             {

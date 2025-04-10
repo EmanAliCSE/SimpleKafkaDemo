@@ -1,4 +1,5 @@
 ﻿// Services/KafkaProducerService.cs
+using API.DTO;
 using API.Models;
 using Confluent.Kafka;
 using Domain.Interfaces;
@@ -6,6 +7,7 @@ using Domain.Models;
 using Infrastructure.Data;
 using Infrastructure.Interfaces;
 using Infrastructure.Services;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.Extensions.Configuration;
 using System.Text.Json;
 
@@ -58,10 +60,15 @@ public class KafkaProducerService : IDisposable
         }
     }
 
-    public async Task ProduceBookingRequestAsync(TicketBooking booking)
+    public async Task<TicketBooking> ProduceBookingRequestAsync(TicketBookingDTO bookingDTO)
     {
-        if(booking==null)
-        { throw new ArgumentNullException(nameof(booking)); }
+        try
+        {
+
+       
+        if(bookingDTO == null)
+        { throw new ArgumentNullException(nameof(bookingDTO)); }
+        TicketBooking booking = bookingDTO.Map();
         var outboxMessage = new OutboxMessage
         {
             Key = booking.Id.ToString(),
@@ -76,6 +83,13 @@ public class KafkaProducerService : IDisposable
        await _unitOfWork.SaveChangesAsync();
 
         _logger.LogInformation($"Added booking request to outbox: {booking.Id}");
+        return booking;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogInformation($"Exception: {ex.Message}");
+            throw ex;
+        }
     }
 
    
