@@ -10,7 +10,7 @@ namespace API.Models
         public string UserId { get; set; }
         public int Quantity { get; set; }
         public BookingStatus Status { get; set; }
-        public DateTime ConfirmationTime { get; set; } = DateTime.UtcNow;
+        public DateTime ConfirmationTime { get; set; } = DateTime.Now;
         public string Message { get; set; }
       
 

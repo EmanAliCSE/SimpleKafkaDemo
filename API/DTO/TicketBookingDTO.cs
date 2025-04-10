@@ -10,7 +10,7 @@ namespace API.DTO
         public string UserId { get; set; }
         [Required]
         public int Quantity { get; set; }
-        public DateTime BookingTime { get; set; } = DateTime.UtcNow;
+       // public DateTime BookingTime { get; set; } = DateTime.UtcNow;
     }
     public static class MapClass
     {
@@ -23,7 +23,7 @@ namespace API.DTO
                 UserId = dto.UserId,
                 Quantity = dto.Quantity,
                 Status = BookingStatus.Pending,
-                BookingTime = dto.BookingTime,
+                BookingTime = DateTime.Now,
                 ProcessedTime = DateTime.Now
             };
         }
