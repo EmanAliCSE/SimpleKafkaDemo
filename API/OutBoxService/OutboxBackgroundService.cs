@@ -43,19 +43,18 @@ public class OutboxProcessorService : BackgroundService
                 {
                     try
                     {
-                        HeadersProcess(message);
-
                         await producer.ProduceAsync(_topic,
                             new Message<Null, string> { Value = message.Content });
                       
                         message.Status = Domain.Enums.OutBoxStatus.Send;
-                        message.LastAttemptAt = DateTime.UtcNow;
+                        message.LastAttemptAt = DateTime.Now;
+                        HeadersProcess(message);
                     }
                     catch (ProduceException<Null,string> ex)
                     {
                         message.Error = ex.Message;
                         message.Status = OutBoxStatus.Failed;
-                        message.LastAttemptAt = DateTime.UtcNow;
+                        message.LastAttemptAt = DateTime.Now;
                         message.RetryCount++;
                         if (message.RetryCount >= OutBoxConstants.MaxRetryCount)
                         {
