@@ -13,6 +13,9 @@ using Domain.Models;
 using Infrastructure.Data;
 using Infrastructure.Interfaces;
 using System.Text;
+using Infrastructure.Services;
+using System.Reflection.Metadata;
+using Helper.Constants;
 
 namespace KafkaWebApiDemo.Services
 {
@@ -50,6 +53,7 @@ namespace KafkaWebApiDemo.Services
 
                 while (!stoppingToken.IsCancellationRequested)
                 {
+                    using var scope = _scopeFactory.CreateScope();
                     try
                     {
                         var consumeResult = await _polly.RetryAsync(() =>
@@ -64,7 +68,7 @@ namespace KafkaWebApiDemo.Services
                         var booking = JsonSerializer.Deserialize<TicketBooking>(consumeResult.Message.Value);
                         if (booking != null)
                         {
-                            using var scope = _scopeFactory.CreateScope();
+
                             var uow = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
 
                             bool result = await _polly.RetryAsync(
@@ -87,6 +91,35 @@ namespace KafkaWebApiDemo.Services
 
                     catch (Exception ex)
                     {
+                        try
+                        {
+                            var dead = scope.ServiceProvider.GetRequiredService<IDeadLetterService>();
+
+                            var consumeResult = _consumer.Consume(stoppingToken); // Re-fetch if necessary (if out of scope)
+                            var headers = consumeResult.Message.Headers;
+
+                            var keyHeader = headers.FirstOrDefault(h => h.Key == HeaderConstants.CorrelationId);
+                            var messageTypeHeader = headers.FirstOrDefault(h => h.Key == HeaderConstants.MessageType);
+
+                            var key = keyHeader != null ? System.Text.Encoding.UTF8.GetString(keyHeader.GetValueBytes()) : Guid.NewGuid().ToString();
+                            var messageType = messageTypeHeader != null ? System.Text.Encoding.UTF8.GetString(messageTypeHeader.GetValueBytes()) : "Unknown";
+
+
+                            await dead.SaveAsync(
+                                topic: _topic,
+                                key: key,
+                                messageType: messageType,
+                                message: ex.Message,
+                                reason: "Failed during message consumption or processing.",
+                                payload: consumeResult.Message.Value,
+                                exceptionMessage: ex.ToString()
+                            );
+                        }
+                        catch (Exception dlqEx)
+                        {
+                            _logger.LogError(dlqEx, "Failed to write message to DeadLetter queue.");
+                        }
+
                         _logger.LogError(ex, "Error processing message");
                     }
                 }

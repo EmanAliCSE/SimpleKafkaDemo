@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using API.Models;
+using Domain.Entities;
 using Domain.Models;
 using Microsoft.EntityFrameworkCore;
 
@@ -19,6 +20,7 @@ namespace Infrastructure.Data
         public DbSet<TicketBooking> Bookings { get; set; }
         //public DbSet<BookingConfirmation> BookingConfirmations { get; set; }
         public DbSet<OutboxMessage> OutboxMessages { get; set; }
+        public DbSet<DeadLetterMessage> DeadLetters { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
