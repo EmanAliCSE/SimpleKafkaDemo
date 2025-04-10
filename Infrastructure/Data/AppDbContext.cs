@@ -7,7 +7,7 @@ using API.Models;
 using Domain.Models;
 using Microsoft.EntityFrameworkCore;
 
-namespace Domain.Data
+namespace Infrastructure.Data
 {
    
   
