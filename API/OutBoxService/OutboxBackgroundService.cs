@@ -43,6 +43,8 @@ public class OutboxProcessorService : BackgroundService
                 {
                     try
                     {
+                        HeadersProcess(message);
+
                         await producer.ProduceAsync(_topic,
                             new Message<Null, string> { Value = message.Content });
                       
@@ -54,13 +56,16 @@ public class OutboxProcessorService : BackgroundService
                         message.Error = ex.Message;
                         message.Status = OutBoxStatus.Failed;
                         message.LastAttemptAt = DateTime.UtcNow;
-                      
+                        message.RetryCount++;
                         if (message.RetryCount >= OutBoxConstants.MaxRetryCount)
                         {
                             message.Status = OutBoxStatus.Failed;
                             message.Error = OutBoxConstants.MaxRetryMsg;
                             _logger.LogWarning($"Outbox message {message.Id} permanently failed after 5 retries.");
                         }
+                        // for test retry 
+                        _logger.LogWarning($"Retry #{message.RetryCount} for message {message.Id}");
+
                         await uow.SaveChangesAsync(stoppingToken);
                         _logger.LogError(ex, "Error processing outbox message");
                     }
@@ -73,6 +78,24 @@ public class OutboxProcessorService : BackgroundService
             }
 
            // await Task.Delay(5000, stoppingToken);
+        }
+    }
+
+    protected void HeadersProcess(OutboxMessage message)
+    {
+        var kafkaMessage = new Message<Null, string>
+        {
+            Value = message.Content,
+            Headers = new Headers()
+        };
+
+        // Optional: Add headers if present
+        if (message.Headers != null)
+        {
+            foreach (var kvp in message.Headers)
+            {
+                kafkaMessage.Headers.Add(kvp.Key, System.Text.Encoding.UTF8.GetBytes(kvp.Value));
+            }
         }
     }
 }

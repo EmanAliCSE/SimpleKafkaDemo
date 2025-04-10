@@ -70,14 +70,19 @@ public class KafkaProducerService : IDisposable
         if(bookingDTO == null)
         { throw new ArgumentNullException(nameof(bookingDTO)); }
         TicketBooking booking = bookingDTO.Map();
-        var outboxMessage = new OutboxMessage
-        {
-            Key = booking.Id.ToString(),
-            Topic = _bookingRequestTopic,
-            Type = nameof(TicketBooking),
-            Status = Domain.Enums.OutBoxStatus.Pending,
-            Content = JsonSerializer.Serialize(booking)
-        };
+            var outboxMessage = new OutboxMessage
+            {
+                Key = booking.Id.ToString(),
+                Topic = _bookingRequestTopic,
+                Type = nameof(TicketBooking),
+                Status = Domain.Enums.OutBoxStatus.Pending,
+                Content = JsonSerializer.Serialize(booking),
+                Headers = new Dictionary<string, string> {
+                        { HeaderConstants.MessageType, nameof(TicketBooking) },
+                        { HeaderConstants.CorrelationId, Guid.NewGuid().ToString() },
+                        { HeaderConstants.SourceService, ProducerConstants.BookingSouceService}
+            }
+            };
         _unitOfWork.Repository<TicketBooking>().Add(booking);
         _unitOfWork.Repository<OutboxMessage>().Add(outboxMessage);
        

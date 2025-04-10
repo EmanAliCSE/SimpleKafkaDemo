@@ -12,6 +12,7 @@ using Domain.Enums;
 using Domain.Models;
 using Infrastructure.Data;
 using Infrastructure.Interfaces;
+using System.Text;
 
 namespace KafkaWebApiDemo.Services
 {
@@ -64,6 +65,8 @@ namespace KafkaWebApiDemo.Services
                         if (result)
                         {
                             _consumer.Commit(consumeResult);
+                            // for testing 
+                            LogHeaderIngo(consumeResult,_logger);
                         }
 
                     }
@@ -104,8 +107,16 @@ namespace KafkaWebApiDemo.Services
                 throw;
             }
         }
+        private void LogHeaderIngo(ConsumeResult<Null, string> consumerResult, ILogger _logger)
+        {
+            var headers = consumerResult.Message.Headers;
+            var messageType = headers.FirstOrDefault(h => h.Key == "message-type")?.GetValueBytes();
+            var correlationId = headers.FirstOrDefault(h => h.Key == "correlation-id")?.GetValueBytes();
 
+            _logger.LogInformation($"Received {System.Text.Encoding.UTF8.GetString(messageType)} with Correlation ID: {System.Text.Encoding.UTF8.GetString(correlationId)}");
+        }
     }
+  
     //protected override Task ExecuteAsync(CancellationToken stoppingToken)
     //{
     //    _consumer.Subscribe(_topic);
