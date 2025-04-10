@@ -19,14 +19,16 @@ namespace KafkaWebApiDemo.Services
     public class KafkaConsumerService : BackgroundService
     {
         private readonly IConfiguration _config;
+        private readonly IPollyService _polly;
         private readonly ILogger<KafkaConsumerService> _logger;
         private readonly IConsumer<Null, string> _consumer;
         private readonly string _topic;
         private readonly IServiceScopeFactory _scopeFactory;
 
-        public KafkaConsumerService(IConfiguration config, IServiceScopeFactory scopeFactory, ILogger<KafkaConsumerService> logger)
+        public KafkaConsumerService(IConfiguration config, IPollyService polly, IServiceScopeFactory scopeFactory, ILogger<KafkaConsumerService> logger)
         {
             _config = config;
+            _polly = polly;
             _logger = logger;
             _scopeFactory = scopeFactory;
             var consumerConfig = new ConsumerConfig
@@ -50,25 +52,37 @@ namespace KafkaWebApiDemo.Services
                 {
                     try
                     {
-                        var consumeResult = _consumer.Consume(stoppingToken);
+                        var consumeResult = await _polly.RetryAsync(() =>
+                        Task.FromResult(_consumer.Consume(stoppingToken)), "Kafka Consumer");
+
+
                         if (consumeResult.IsPartitionEOF)
                         {
                             _logger.LogError("IsPartitionEOF", "No msgs");
                             return;
                         }
                         var booking = JsonSerializer.Deserialize<TicketBooking>(consumeResult.Message.Value);
-                       
-                        using var scope = _scopeFactory.CreateScope();
-                        var uow = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
-
-                        bool result = await ProcessBookingAsync(uow, booking);
-                        if (result)
+                        if (booking != null)
                         {
-                            _consumer.Commit(consumeResult);
-                            // for testing 
-                            LogHeaderIngo(consumeResult,_logger);
-                        }
+                            using var scope = _scopeFactory.CreateScope();
+                            var uow = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
 
+                            bool result = await _polly.RetryAsync(
+                                            () => ProcessBookingAsync(uow, booking),
+                                            context: $"ProcessBooking - Id: {booking.Id}");
+                            if (result)
+                            {
+
+                                await _polly.RetryAsync(() =>
+                                {
+                                    _consumer.Commit(consumeResult);
+                                    return Task.CompletedTask;
+                                }, context: $"Kafka Consumer Commit - Id: {booking.Id}");
+
+                                // for testing 
+                                LogHeaderIngo(consumeResult, _logger);
+                            }
+                        }
                     }
 
                     catch (Exception ex)
@@ -118,80 +132,6 @@ namespace KafkaWebApiDemo.Services
         }
     }
   
-    //protected override Task ExecuteAsync(CancellationToken stoppingToken)
-    //{
-    //    _consumer.Subscribe(_topic);
-
-    //    return Task.Run(() =>
-    //    {
-    //        try
-    //        {
-    //            while (!stoppingToken.IsCancellationRequested)
-    //            {
-    //                var result = _consumer.Consume(stoppingToken);
-
-    //                _logger.LogInformation($"Consumed: {result.Message.Value}");
-    //            }
-    //        }
-    //        catch (OperationCanceledException)
-    //        {
-    //            _consumer.Close();
-
-    //        }
-    //    });
-    //}
-
-    //protected override async Task ExecuteAsync(CancellationToken stoppingToken)
-    //{
-    //    _consumer.Subscribe(_topic);
-
-    //    try
-    //    {
-    //        while (!stoppingToken.IsCancellationRequested)
-    //        {
-    //            var consumeResult = _consumer.Consume(stoppingToken);
-    //            if (consumeResult.Message.Value is string)
-    //            {
-    //                _logger.LogInformation($"Consumed: {consumeResult.Message.Value}");
-    //            }
-    //            else
-    //            {
-    //                var booking = JsonSerializer.Deserialize<TicketBooking>(consumeResult.Message.Value);
-    //                if (booking != null)
-    //                {
-    //                    using (var scope = _serviceProvider.CreateScope())
-    //                    {
-    //                        var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-
-    //                        // Check if booking exists
-    //                        var existingBooking = await dbContext.Bookings
-
-    //                            .FirstOrDefaultAsync(b => b.Id == booking.Id, stoppingToken);
-
-    //                        if (existingBooking != null)
-    //                        {
-    //                            _logger.LogWarning($"Duplicate booking detected: {booking.Id}");
-    //                            continue;
-    //                        }
-
-
-    //                        booking.Status = BookingStatus.Processing;
-    //                        dbContext.Bookings.Add(booking);
-    //                        await dbContext.SaveChangesAsync(stoppingToken);
-
-
-    //                        _logger.LogInformation($"Booking confirmed: {booking.Id}");
-    //                    }
-    //                }
-    //            }
-    //        }
-    //    }
-    //    catch (Exception ex)
-    //    {
-    //        _logger.LogError(ex, "Error processing booking");
-    //        _consumer.Close();
-    //    }
-
-    //}
+    
 }
 

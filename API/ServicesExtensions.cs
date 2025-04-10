@@ -1,16 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿
 using Confluent.Kafka;
-using Domain.Interfaces;
-using Infrastructure.Services;
 using KafkaWebApiDemo.Services;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-
 namespace Infrastructure
 {
     public static  class ServicesExtensions
@@ -33,6 +23,7 @@ namespace Infrastructure
             services.AddHostedService<KafkaConsumerService>();
             services.AddHostedService<OutboxProcessorService>();
 
+           
             return services;
         }
     }

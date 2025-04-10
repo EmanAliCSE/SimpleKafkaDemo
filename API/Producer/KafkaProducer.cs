@@ -1,27 +1,23 @@
-﻿// Services/KafkaProducerService.cs
-using API.DTO;
+﻿using API.DTO;
 using API.Models;
 using Confluent.Kafka;
 using Domain.Interfaces;
 using Domain.Models;
 using Helper.Constants;
-using Infrastructure.Data;
 using Infrastructure.Interfaces;
-using Infrastructure.Services;
-using Microsoft.AspNetCore.Http.HttpResults;
-using Microsoft.Extensions.Configuration;
 using System.Text.Json;
 
 public class KafkaProducerService : IDisposable
 {
     private readonly IProducer<Null, string> _producer;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly IPollyService _polly;
     private readonly IOutboxService _outboxService;
     private readonly ILogger<KafkaProducerService> _logger;
     private readonly string _bookingRequestTopic;
 
     public KafkaProducerService(
-        IConfiguration configuration,IUnitOfWork unitOfWork,
+        IConfiguration configuration,IUnitOfWork unitOfWork, IPollyService polly,
         IOutboxService outboxService, 
         ILogger<KafkaProducerService> logger)
     {
@@ -34,6 +30,7 @@ public class KafkaProducerService : IDisposable
         };
         _producer = new ProducerBuilder<Null, string>(producerConfig).Build();
        _unitOfWork = unitOfWork;
+       _polly = polly;
         _outboxService = outboxService;
         _logger = logger;
         _bookingRequestTopic = configuration["Kafka:Topic"];
@@ -83,11 +80,13 @@ public class KafkaProducerService : IDisposable
                         { HeaderConstants.SourceService, ProducerConstants.BookingSouceService}
             }
             };
-        _unitOfWork.Repository<TicketBooking>().Add(booking);
-        _unitOfWork.Repository<OutboxMessage>().Add(outboxMessage);
-       
-       await _unitOfWork.SaveChangesAsync();
+            await _polly.RetryAsync(async () =>
+            {
+                _unitOfWork.Repository<TicketBooking>().Add(booking);
+                _unitOfWork.Repository<OutboxMessage>().Add(outboxMessage);
 
+                await _unitOfWork.SaveChangesAsync();
+            }, context: "Producer Save");
         _logger.LogInformation($"Added booking request to outbox: {booking.Id}");
         return booking;
         }

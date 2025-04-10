@@ -4,21 +4,22 @@ using Confluent.Kafka;
 using Domain.Enums;
 using Domain.Models;
 using Helper.Constants;
-using Infrastructure.Data;
 using Infrastructure.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
 public class OutboxProcessorService : BackgroundService
 {
     private readonly IServiceScopeFactory _scopeFactory;
+    private readonly IPollyService _polly;
     private readonly ILogger<OutboxProcessorService> _logger;
     private readonly TimeSpan _interval = TimeSpan.FromSeconds(5);
     private readonly string _topic;
     public OutboxProcessorService(
-         IServiceScopeFactory scopeFactory, IConfiguration config, 
+         IServiceScopeFactory scopeFactory, IConfiguration config, IPollyService polly,
         ILogger<OutboxProcessorService> logger)
     {
         _scopeFactory = scopeFactory;
+        _polly = polly;
         _logger = logger;
         _topic = config["Kafka:Topic"];
     }
@@ -43,9 +44,11 @@ public class OutboxProcessorService : BackgroundService
                 {
                     try
                     {
-                        await producer.ProduceAsync(_topic,
+                        await _polly.RetryAsync(async () =>
+                        {
+                            await producer.ProduceAsync(_topic,
                             new Message<Null, string> { Value = message.Content });
-                      
+                        }, context: $"Kafka Send - MessageId: {message.Id}");
                         message.Status = Domain.Enums.OutBoxStatus.Send;
                         message.LastAttemptAt = DateTime.Now;
                         HeadersProcess(message);
@@ -71,7 +74,10 @@ public class OutboxProcessorService : BackgroundService
                     }
                     uow.Repository<OutboxMessage>().Update(message);
                 }
-                await uow.SaveChangesAsync();
+                await _polly.RetryAsync(async () =>
+                {
+                    await uow.SaveChangesAsync();
+                }, context: "EF SaveChanges - OutboxProcessor");
             }
             catch (Exception ex)
             {
