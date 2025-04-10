@@ -4,6 +4,7 @@ using API.Models;
 using Confluent.Kafka;
 using Domain.Interfaces;
 using Domain.Models;
+using Helper.Constants;
 using Infrastructure.Data;
 using Infrastructure.Interfaces;
 using Infrastructure.Services;
@@ -28,7 +29,7 @@ public class KafkaProducerService : IDisposable
         {
             BootstrapServers = configuration["Kafka:BootstrapServers"],
             EnableIdempotence = true,
-            MessageSendMaxRetries = 3,
+            MessageSendMaxRetries = OutBoxConstants.MaxRetryCount,
             Acks = Acks.All
         };
         _producer = new ProducerBuilder<Null, string>(producerConfig).Build();

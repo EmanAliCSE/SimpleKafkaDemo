@@ -19,7 +19,7 @@ namespace API.DTO
             return new TicketBooking()
             {
                 Id = Guid.NewGuid(),
-                 EventId= "EventId",
+                 //EventId= "EventId",
                 UserId = dto.UserId,
                 Quantity = dto.Quantity,
                 Status = BookingStatus.Pending,
