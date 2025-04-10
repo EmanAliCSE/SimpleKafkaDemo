@@ -103,15 +103,27 @@ namespace KafkaWebApiDemo.Services
             {
                 // check obj in outbox 
                 var outboxMsg = await uow.Repository<OutboxMessage>()
-                     .FirstOrDefaultAsync(a => a.Key == booking.Id.ToString() && a.Topic == _topic && a.Status == OutBoxStatus.Send);
-
-                if (outboxMsg != null)
+                     .FirstOrDefaultAsync(a => a.Key == booking.Id.ToString() && a.Topic == _topic);
+                //&& a.Status == OutBoxStatus.Send);
+                if (outboxMsg == null || outboxMsg.Status == OutBoxStatus.Consumed)
+                {
+                    _logger.LogInformation("Booking {Id} already processed at {Time}", booking.Id, outboxMsg?.ProcessedAt);
+                    return false;
+                }
+               else
                 {
                     outboxMsg.Status = OutBoxStatus.Consumed;
                     outboxMsg.ProcessedAt = DateTime.Now;
+
+                    // modfy booking obj 
+                    booking.ProcessedTime = DateTime.Now;
+                    booking.Status = BookingStatus.Processing;
+
+                    uow.Repository<TicketBooking>().Update(booking);
+                    uow.Repository<OutboxMessage>().Update(outboxMsg);
+                    await uow.SaveChangesAsync();
                 }
-                uow.Repository<OutboxMessage>().Update(outboxMsg);
-                await uow.SaveChangesAsync();
+               
                 await uow.CommitTransactionAsync();
                 return true;
             }

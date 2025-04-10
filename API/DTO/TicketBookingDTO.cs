@@ -24,7 +24,7 @@ namespace API.DTO
                 Quantity = dto.Quantity,
                 Status = BookingStatus.Pending,
                 BookingTime = DateTime.Now,
-                ProcessedTime = DateTime.Now
+                ProcessedTime =null
             };
         }
     }
