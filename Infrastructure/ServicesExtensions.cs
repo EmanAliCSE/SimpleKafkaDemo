@@ -11,7 +11,6 @@ using Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Diagnostics.HealthChecks;
 namespace Infrastructure
 {
     public static  class ServicesExtensions
@@ -32,9 +31,7 @@ namespace Infrastructure
             services.Configure<PollySettings>(configuration.GetSection("Polly"));
             services.AddSingleton<IPollyService, PollyService>();
 
-            // Add SQL Server health check
-            services.AddHealthChecks()
-            .AddSqlServer(connectionString);
+         
             return services;
         }
     }

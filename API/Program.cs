@@ -1,9 +1,12 @@
 using System;
 using Confluent.Kafka;
 using Domain.Interfaces;
+using HealthChecks.UI.Client;
 using Infrastructure;
 using Infrastructure.Services;
 using KafkaWebApiDemo.Services;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 
@@ -27,7 +30,20 @@ var app = builder.Build();
 app.UseRouting();
 app.UseSwagger();
 app.UseSwaggerUI();
-app.MapControllers();
-app.MapHealthChecks("/health");
+
+app.UseEndpoints(endpoints =>
+{
+    endpoints.MapControllers();
+
+    endpoints.MapHealthChecks("/health", new HealthCheckOptions
+    {
+        ResponseWriter = UIResponseWriter.WriteHealthCheckUIResponse
+    });
+
+    endpoints.MapHealthChecksUI(options =>
+    {
+        options.UIPath = "/health-ui"; // Access via browser at /health-ui
+    });
+});
 
 app.Run();
