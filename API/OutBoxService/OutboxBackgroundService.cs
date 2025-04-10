@@ -1,6 +1,6 @@
 ﻿// Services/OutboxProcessorService.cs
 using Confluent.Kafka;
-using Domain.Data;
+using Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
 public class OutboxProcessorService : BackgroundService

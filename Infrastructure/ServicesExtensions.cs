@@ -4,7 +4,6 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Domain.Interfaces;
-using Infrastructure.Common;
 using Infrastructure.Data;
 using Infrastructure.Interfaces;
 using Infrastructure.Services;

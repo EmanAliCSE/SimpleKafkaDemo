@@ -4,7 +4,6 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Confluent.Kafka;
-using Domain.Data;
 using Domain.Interfaces;
 using Infrastructure.Services;
 using KafkaWebApiDemo.Services;

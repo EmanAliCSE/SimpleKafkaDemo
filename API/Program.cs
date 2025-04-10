@@ -1,6 +1,5 @@
 using System;
 using Confluent.Kafka;
-using Domain.Data;
 using Domain.Interfaces;
 using Infrastructure;
 using Infrastructure.Services;

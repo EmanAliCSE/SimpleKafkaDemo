@@ -1,9 +1,9 @@
 ﻿// Services/KafkaProducerService.cs
 using API.Models;
 using Confluent.Kafka;
-using Domain.Data;
 using Domain.Interfaces;
 using Domain.Models;
+using Infrastructure.Data;
 using Infrastructure.Services;
 using Microsoft.Extensions.Configuration;
 using System.Text.Json;

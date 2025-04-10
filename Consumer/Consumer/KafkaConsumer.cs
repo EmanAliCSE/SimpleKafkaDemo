@@ -6,11 +6,11 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using API.Models;
 using System;
-using Domain.Data;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.EntityFrameworkCore;
 using Domain.Enums;
 using Domain.Models;
+using Infrastructure.Data;
 
 namespace KafkaWebApiDemo.Services
 {
@@ -38,7 +38,6 @@ namespace KafkaWebApiDemo.Services
             _consumer = new ConsumerBuilder<Null, string>(consumerConfig).Build();
             _topic = _config["Kafka:Topic"];
         }
-        // Services/KafkaConsumerService.cs
         protected override Task ExecuteAsync(CancellationToken stoppingToken)
         {
             _consumer.Subscribe(_topic);
