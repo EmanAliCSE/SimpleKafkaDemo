@@ -16,12 +16,10 @@ public class KafkaProducerService : IDisposable
     private readonly IOutboxService _outboxService;
     private readonly ILogger<KafkaProducerService> _logger;
     private readonly string _bookingRequestTopic;
-    //private readonly IServiceScopeFactory _scopeFactory;
 
     public KafkaProducerService(
         IConfiguration configuration,IUnitOfWork unitOfWork,
         IOutboxService outboxService, 
-        //IServiceScopeFactory scopeFactory,
         ILogger<KafkaProducerService> logger)
     {
         var producerConfig = new ProducerConfig
@@ -35,7 +33,6 @@ public class KafkaProducerService : IDisposable
        _unitOfWork = unitOfWork;
         _outboxService = outboxService;
         _logger = logger;
-       // _scopeFactory = scopeFactory;
         _bookingRequestTopic = configuration["Kafka:Topic"];
     }
 
@@ -65,8 +62,6 @@ public class KafkaProducerService : IDisposable
     {
         if(booking==null)
         { throw new ArgumentNullException(nameof(booking)); }
-        //using var scope = _scopeFactory.CreateScope();
-        //var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         var outboxMessage = new OutboxMessage
         {
             Key = booking.Id.ToString(),
@@ -77,12 +72,9 @@ public class KafkaProducerService : IDisposable
         };
         _unitOfWork.Repository<TicketBooking>().Add(booking);
         _unitOfWork.Repository<OutboxMessage>().Add(outboxMessage);
-        //dbContext.Bookings.Add(booking);
-        //dbContext.OutboxMessages.Add(outboxMessage);
-       await _unitOfWork.CompleteAsync();
-      //  await dbContext.SaveChangesAsync();
+       
+       await _unitOfWork.SaveChangesAsync();
 
-       // await _outboxService.AddMessageAsync("BookingCreated", booking);
         _logger.LogInformation($"Added booking request to outbox: {booking.Id}");
     }
 

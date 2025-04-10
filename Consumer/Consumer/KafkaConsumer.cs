@@ -11,6 +11,7 @@ using Microsoft.EntityFrameworkCore;
 using Domain.Enums;
 using Domain.Models;
 using Infrastructure.Data;
+using Infrastructure.Interfaces;
 
 namespace KafkaWebApiDemo.Services
 {
@@ -22,7 +23,7 @@ namespace KafkaWebApiDemo.Services
         private readonly string _topic;
         private readonly IServiceScopeFactory _scopeFactory;
 
-        public KafkaConsumerService(IConfiguration config, ILogger<KafkaConsumerService> logger,IServiceScopeFactory scopeFactory)
+        public KafkaConsumerService(IConfiguration config, IServiceScopeFactory scopeFactory, ILogger<KafkaConsumerService> logger)
         {
             _config = config;
             _logger = logger;
@@ -57,9 +58,9 @@ namespace KafkaWebApiDemo.Services
                         var booking = JsonSerializer.Deserialize<TicketBooking>(consumeResult.Message.Value);
 
                         using var scope = _scopeFactory.CreateScope();
-                        var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+                        var uow = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
 
-                        bool result = await ProcessBookingAsync(dbContext, booking);
+                        bool result = await ProcessBookingAsync(uow, booking);
                         if (result)
                         {
                             _consumer.Commit(consumeResult);
@@ -77,14 +78,14 @@ namespace KafkaWebApiDemo.Services
             });
 
         }
-        private async Task<bool> ProcessBookingAsync(AppDbContext dbContext, TicketBooking booking)
+        private async Task<bool> ProcessBookingAsync(IUnitOfWork uow, TicketBooking booking)
         {
-            using var transaction = await dbContext.Database.BeginTransactionAsync();
+             await uow.BeginTransactionAsync();
 
             try
             {
                 // check obj in outbox 
-                var outboxMsg = await dbContext.OutboxMessages
+                var outboxMsg = await uow.Repository<OutboxMessage>()
                      .FirstOrDefaultAsync(a => a.Key == booking.Id.ToString() && a.Topic == _topic && a.Status == OutBoxStatus.Send);
 
                 if (outboxMsg != null)
@@ -92,13 +93,13 @@ namespace KafkaWebApiDemo.Services
                     outboxMsg.Status = OutBoxStatus.Consumed;
                     outboxMsg.ProcessedAt = DateTime.Now;
                 }
-                await dbContext.SaveChangesAsync();
-                await transaction.CommitAsync();
+                await uow.SaveChangesAsync();
+                await uow.CommitTransactionAsync();
                 return true;
             }
             catch
             {
-                await transaction.RollbackAsync();
+                await uow.RollbackTransactionAsync();
                 return false;
                 throw;
             }
