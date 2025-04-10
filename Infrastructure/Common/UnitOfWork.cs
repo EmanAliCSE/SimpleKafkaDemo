@@ -41,11 +41,11 @@ namespace Infrastructure
             return (IGenericRepository<TEntity>)_repositories[type];
         }
 
-        public async Task<int> SaveChangesAsync()
+        public async Task<int> SaveChangesAsync(CancellationToken token = default)
         {
-            return await _dbContext.SaveChangesAsync();
+            return await _dbContext.SaveChangesAsync(token);
         }
-
+       
         public async Task BeginTransactionAsync()
         {
             if (_transaction != null)

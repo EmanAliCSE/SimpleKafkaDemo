@@ -1,19 +1,21 @@
 ﻿// Services/OutboxProcessorService.cs
 using Confluent.Kafka;
+using Domain.Models;
 using Infrastructure.Data;
+using Infrastructure.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
 public class OutboxProcessorService : BackgroundService
 {
-    private readonly IServiceProvider _serviceProvider;
+    private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<OutboxProcessorService> _logger;
     private readonly TimeSpan _interval = TimeSpan.FromSeconds(5);
     private readonly string _topic;
     public OutboxProcessorService(
-        IServiceProvider serviceProvider, IConfiguration config, 
+         IServiceScopeFactory scopeFactory, IConfiguration config, 
         ILogger<OutboxProcessorService> logger)
     {
-        _serviceProvider = serviceProvider;
+        _scopeFactory = scopeFactory;
         _logger = logger;
         _topic = config["Kafka:Topic"];
     }
@@ -24,12 +26,12 @@ public class OutboxProcessorService : BackgroundService
         {
             try
             {
-                using var scope = _serviceProvider.CreateScope();
-                var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+                using var scope = _scopeFactory.CreateScope();
+                var uow = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
                 var producer = scope.ServiceProvider.GetRequiredService<IProducer<Null, string>>();
 
-                var messages = await dbContext.OutboxMessages
-                    .Where(m => m.Status ==  Domain.Enums.OutBoxStatus.Pending)
+                var messages = await uow.Repository<OutboxMessage>()
+                    .FindByCondition(m => m.Status ==  Domain.Enums.OutBoxStatus.Pending)
                     .OrderBy(m => m.CreatedAt)
                      .Take(10)
                     .ToListAsync(stoppingToken);
@@ -48,11 +50,11 @@ public class OutboxProcessorService : BackgroundService
                     {
                         message.Error = ex.Message;
                         message.Status = Domain.Enums.OutBoxStatus.Failed;
-                        await dbContext.SaveChangesAsync(stoppingToken);
+                        await uow.SaveChangesAsync(stoppingToken);
                         _logger.LogError(ex, "Error processing outbox message");
                     }
                 }
-                await dbContext.SaveChangesAsync();
+                await uow.SaveChangesAsync();
             }
             catch (Exception ex)
             {

@@ -33,9 +33,6 @@ namespace Infrastructure
             services.AddHostedService<KafkaConsumerService>();
             services.AddHostedService<OutboxProcessorService>();
 
-
-
-            services.AddHostedService<OutboxProcessorService>();
             return services;
         }
     }

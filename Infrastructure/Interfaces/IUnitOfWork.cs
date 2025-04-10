@@ -9,6 +9,6 @@ namespace Infrastructure.Interfaces
         Task BeginTransactionAsync();
         Task CommitTransactionAsync();
         Task RollbackTransactionAsync();
-        Task<int> SaveChangesAsync();
+        Task<int> SaveChangesAsync(CancellationToken token=default);
     }
 }
