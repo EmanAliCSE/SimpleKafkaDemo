@@ -12,6 +12,8 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddServiceExtensions(builder.Configuration);
 builder.Services.AddConsumerServices(builder.Configuration);
@@ -26,5 +28,6 @@ app.UseRouting();
 app.UseSwagger();
 app.UseSwaggerUI();
 app.MapControllers();
+app.MapHealthChecks("/health");
 
 app.Run();
