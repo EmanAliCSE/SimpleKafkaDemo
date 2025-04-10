@@ -49,6 +49,7 @@ public class OutboxProcessorService : BackgroundService
                         message.Status = Domain.Enums.OutBoxStatus.Send;
                         message.LastAttemptAt = DateTime.Now;
                         HeadersProcess(message);
+                     
                     }
                     catch (ProduceException<Null,string> ex)
                     {
@@ -65,9 +66,10 @@ public class OutboxProcessorService : BackgroundService
                         // for test retry 
                         _logger.LogWarning($"Retry #{message.RetryCount} for message {message.Id}");
 
-                        await uow.SaveChangesAsync(stoppingToken);
+                       
                         _logger.LogError(ex, "Error processing outbox message");
                     }
+                    uow.Repository<OutboxMessage>().Update(message);
                 }
                 await uow.SaveChangesAsync();
             }

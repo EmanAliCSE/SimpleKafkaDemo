@@ -96,6 +96,7 @@ namespace KafkaWebApiDemo.Services
                     outboxMsg.Status = OutBoxStatus.Consumed;
                     outboxMsg.ProcessedAt = DateTime.Now;
                 }
+                uow.Repository<OutboxMessage>().Update(outboxMsg);
                 await uow.SaveChangesAsync();
                 await uow.CommitTransactionAsync();
                 return true;
