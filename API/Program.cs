@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -24,7 +25,14 @@ builder.Services.AddConsumerServices(builder.Configuration);
 
 //builder.Logging.ClearProviders();
 //builder.Logging.AddConsole();
-
+//Serilog configrations  Read  from config
+builder.Host.UseSerilog((context, services, configuration) =>
+{
+    configuration
+        .ReadFrom.Configuration(context.Configuration)
+        .ReadFrom.Services(services)
+        .Enrich.FromLogContext();
+});
 var app = builder.Build();
 
 app.UseRouting();
@@ -45,5 +53,7 @@ app.UseEndpoints(endpoints =>
         options.UIPath = "/health-ui"; // Access via browser at /health-ui
     });
 });
+
+app.UseSerilogRequestLogging(); // logs HTTP requests
 
 app.Run();

@@ -21,7 +21,7 @@ namespace Infrastructure.Data
         //public DbSet<BookingConfirmation> BookingConfirmations { get; set; }
         public DbSet<OutboxMessage> OutboxMessages { get; set; }
         public DbSet<DeadLetterMessage> DeadLetters { get; set; }
-
+        public DbSet<Log> Logs { get; set; }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             //modelBuilder.Entity<TicketBooking>(entity =>
