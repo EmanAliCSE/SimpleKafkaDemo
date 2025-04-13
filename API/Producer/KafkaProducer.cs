@@ -73,6 +73,7 @@ public class KafkaProducerService : IDisposable
         { throw new ArgumentNullException(nameof(bookingDTO)); }
         TicketBooking booking = bookingDTO.Map();
             bookingId = booking.Id.ToString();
+           
              outboxMessage = new OutboxMessage
             {
                 Key = booking.Id.ToString(),
@@ -93,7 +94,14 @@ public class KafkaProducerService : IDisposable
 
                 await _unitOfWork.SaveChangesAsync();
             }, context: "Producer Save");
-        _logger.LogInformation($"Added booking request to outbox: {booking.Id}");
+            var actionId = booking.Id;
+            _logger.LogInformation($"{booking.Id}");
+            _logger.LogInformation("Added booking request to TicketBooking: booking Id: {bookingId}", booking.Id);
+            _logger.LogInformation("Added booking request to TicketBooking: booking Id: {BookingId}", booking.Id);
+
+            //  _logger.LogInformation($"Added booking request to TicketBooking: {booking.Id}, ActionId: {actionId}", booking.Id, actionId);
+
+            _logger.LogInformation("Added booking request to outbox: {bookingId}", bookingId);
         return booking;
         }
         catch (Exception ex)
@@ -122,8 +130,8 @@ public class KafkaProducerService : IDisposable
                                           exceptionMessage: ex.ToString()
                                       );
             }
-
-                _logger.LogInformation($"Exception: {ex.Message}");
+            _logger.LogError($"add to Dead Letter table : {ex.Message}", new { ActionId = bookingId });
+                _logger.LogError($"Exception: {ex.Message} , {ex.ToString()}", new { ActionId = bookingId });
             throw ex;
         }
     }

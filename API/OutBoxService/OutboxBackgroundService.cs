@@ -52,7 +52,7 @@ public class OutboxProcessorService : BackgroundService
                         message.Status = Domain.Enums.OutBoxStatus.Send;
                         message.LastAttemptAt = DateTime.Now;
                         HeadersProcess(message);
-                     
+                        _logger.LogInformation($"update outbox msg {message.Content} with status {message.Status}", message.Key, message.Id);
                     }
                     catch (ProduceException<Null,string> ex)
                     {
@@ -64,10 +64,10 @@ public class OutboxProcessorService : BackgroundService
                         {
                             message.Status = OutBoxStatus.Failed;
                             message.Error = OutBoxConstants.MaxRetryMsg;
-                            _logger.LogWarning($"Outbox message {message.Id} permanently failed after 5 retries.");
+                            _logger.LogWarning($"Outbox message {message.Id} permanently failed after 5 retries.",message.Key,message.Id);
                         }
                         // for test retry 
-                        _logger.LogWarning($"Retry #{message.RetryCount} for message {message.Id}");
+                        _logger.LogWarning($"Retry #{message.RetryCount} for message {message.Id}",message.Key,message.Id);
 
                        
                         _logger.LogError(ex, "Error processing outbox message");

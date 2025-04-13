@@ -84,7 +84,7 @@ namespace KafkaWebApiDemo.Services
                                 }, context: $"Kafka Consumer Commit - Id: {booking.Id}");
 
                                 // for testing 
-                                LogHeaderIngo(consumeResult, _logger);
+                                LogHeaderInfo(consumeResult, _logger);
                             }
                         }
                     }
@@ -114,13 +114,15 @@ namespace KafkaWebApiDemo.Services
                                 payload: consumeResult.Message.Value,
                                 exceptionMessage: ex.ToString()
                             );
+                            _logger.LogError($"Write message to DeadLetter .because of {ex.Message} with exception {ex.ToString()}",key);
+
                         }
                         catch (Exception dlqEx)
                         {
-                            _logger.LogError(dlqEx, "Failed to write message to DeadLetter queue.");
+                            _logger.LogError($"Failed to write message to DeadLetter queue. with exception {dlqEx}");
                         }
 
-                        _logger.LogError(ex, "Error processing message");
+                        _logger.LogError($"Error processing message with exception {ex.ToString()}");
                     }
                 }
 
@@ -167,13 +169,13 @@ namespace KafkaWebApiDemo.Services
                 throw;
             }
         }
-        private void LogHeaderIngo(ConsumeResult<Null, string> consumerResult, ILogger _logger)
+        private void LogHeaderInfo(ConsumeResult<Null, string> consumerResult, ILogger _logger)
         {
             var headers = consumerResult.Message.Headers;
             var messageType = headers.FirstOrDefault(h => h.Key == "message-type")?.GetValueBytes();
             var correlationId = headers.FirstOrDefault(h => h.Key == "correlation-id")?.GetValueBytes();
 
-            _logger.LogInformation($"Received {System.Text.Encoding.UTF8.GetString(messageType)} with Correlation ID: {System.Text.Encoding.UTF8.GetString(correlationId)}");
+            _logger.LogInformation($"Received {System.Text.Encoding.UTF8.GetString(messageType)} with Correlation ID: {System.Text.Encoding.UTF8.GetString(correlationId)}",correlationId);
         }
     }
   

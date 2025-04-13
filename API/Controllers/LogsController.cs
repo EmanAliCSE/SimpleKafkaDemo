@@ -16,26 +16,27 @@ namespace API.Controllers
         {
             _uow = unitOfWork;
         }
-        [HttpGet("booking/{bookingId}")]
-        public async Task<IActionResult> GetLogsByBookingId(string bookingId)
+        [HttpGet("{actionId}")]
+        public async Task<IActionResult> GetLogsByActionId(string actionId)
         {
+            try
+            {
+
+           
+          // var temp= await _uow.Repository<Log>().FirstOrDefaultAsync(a=>a.Id==15);
             var logs = await _uow.Repository<Log>()
-                .FindByCondition(log => log.Properties.Contains(bookingId))
+                .FindByCondition(log => log.ActionId.ToString()==actionId)
                 .OrderByDescending(log => log.TimeStamp)
                 .ToListAsync();
 
             return Ok(logs);
+            }
+            catch (Exception ex)
+            {
+
+                throw;
+            }
         }
 
-        [HttpGet("correlation/{correlationId}")]
-        public async Task<IActionResult> GetLogsByCorrelationId(string correlationId)
-        {
-            var logs = await _uow.Repository<Log>()
-                .FindByCondition(log => log.Properties.Contains(correlationId))
-                .OrderByDescending(log => log.TimeStamp)
-                .ToListAsync();
-
-            return Ok(logs);
-        }
     }
 }
