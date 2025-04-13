@@ -114,7 +114,7 @@ namespace KafkaWebApiDemo.Services
                                 payload: consumeResult.Message.Value,
                                 exceptionMessage: ex.ToString()
                             );
-                            _logger.LogError($"Write message to DeadLetter .because of {ex.Message} with exception {ex.ToString()}",key);
+                            _logger.LogError("Write message to DeadLetter with booking id {key} .because of {ex.Message} with exception {ex.ToString()}",Guid.Parse(key), ex.Message, ex.ToString());
 
                         }
                         catch (Exception dlqEx)

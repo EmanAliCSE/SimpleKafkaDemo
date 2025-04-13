@@ -97,11 +97,10 @@ public class KafkaProducerService : IDisposable
             var actionId = booking.Id;
             _logger.LogInformation($"{booking.Id}");
             _logger.LogInformation("Added booking request to TicketBooking: booking Id: {bookingId}", booking.Id);
-            _logger.LogInformation("Added booking request to TicketBooking: booking Id: {BookingId}", booking.Id);
 
             //  _logger.LogInformation($"Added booking request to TicketBooking: {booking.Id}, ActionId: {actionId}", booking.Id, actionId);
 
-            _logger.LogInformation("Added booking request to outbox: {bookingId}", bookingId);
+            _logger.LogInformation("Added booking request to outbox: {bookingId}", booking.Id);
         return booking;
         }
         catch (Exception ex)
@@ -130,8 +129,8 @@ public class KafkaProducerService : IDisposable
                                           exceptionMessage: ex.ToString()
                                       );
             }
-            _logger.LogError($"add to Dead Letter table : {ex.Message}", new { ActionId = bookingId });
-                _logger.LogError($"Exception: {ex.Message} , {ex.ToString()}", new { ActionId = bookingId });
+            _logger.LogError($"add to Dead Letter table : {ex.Message}",bookingId);
+                _logger.LogError($"Exception: {ex.Message} , {ex.ToString()}", bookingId );
             throw ex;
         }
     }
