@@ -142,11 +142,12 @@ namespace KafkaWebApiDemo.Services
                 //&& a.Status == OutBoxStatus.Send);
                 if (outboxMsg == null || outboxMsg.Status == OutBoxStatus.Consumed)
                 {
-                    _logger.LogInformation("Booking {Id} already processed at {Time}", booking.Id, outboxMsg?.ProcessedAt);
+                    _logger.LogInformation("Booking {0} already processed at {1}", booking.Id, outboxMsg?.ProcessedAt);
                     return false;
                 }
                else
                 {
+                    _logger.LogInformation("msg {0} now in consumer", booking.Id);
                     outboxMsg.Status = OutBoxStatus.Consumed;
                     outboxMsg.ProcessedAt = DateTime.Now;
 
@@ -156,6 +157,10 @@ namespace KafkaWebApiDemo.Services
 
                     uow.Repository<TicketBooking>().Update(booking);
                     uow.Repository<OutboxMessage>().Update(outboxMsg);
+                    _logger.LogInformation("Booking {0}  processed at {1} and update Status with {2}", booking.Id, outboxMsg?.ProcessedAt,booking.Status);
+
+                    _logger.LogInformation("outboxMsg with key {0}  ,processed at {1}  and update Status {2}", booking.Id, outboxMsg?.ProcessedAt,outboxMsg?.Status);
+
                     await uow.SaveChangesAsync();
                 }
                
@@ -174,8 +179,9 @@ namespace KafkaWebApiDemo.Services
             var headers = consumerResult.Message.Headers;
             var messageType = headers.FirstOrDefault(h => h.Key == "message-type")?.GetValueBytes();
             var correlationId = headers.FirstOrDefault(h => h.Key == "correlation-id")?.GetValueBytes();
-
-            _logger.LogInformation($"Received {System.Text.Encoding.UTF8.GetString(messageType)} with Correlation ID: {System.Text.Encoding.UTF8.GetString(correlationId)}",correlationId);
+          var msgTypeValue=  System.Text.Encoding.UTF8.GetString(messageType);
+          var correlationIdValue =  System.Text.Encoding.UTF8.GetString(correlationId);
+            _logger.LogInformation("message with key {0} Received {1}", correlationId, msgTypeValue);
         }
     }
   
