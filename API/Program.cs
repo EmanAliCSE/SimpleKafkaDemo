@@ -2,6 +2,7 @@ using System;
 using System.Collections.ObjectModel;
 using System.Data;
 using API.middelwares;
+using Application;
 using Confluent.Kafka;
 using Domain.Interfaces;
 using HealthChecks.UI.Client;
@@ -18,25 +19,13 @@ using Serilog.Events;
 using Serilog.Sinks.MSSqlServer;
 
 var builder = WebApplication.CreateBuilder(args);
-// Add cors
-builder.Services.AddCors(options =>
-{
-    options.AddPolicy("AllowAll", policy =>
-    {
-        policy
-            .AllowAnyOrigin()
-            .AllowAnyHeader()
-            .AllowAnyMethod();
-    });
-});
 // Read connection string from config
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-
+builder.Services.AddApplicationServiceExtensions();
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddServiceExtensions(builder.Configuration);
-
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddConsumerServices(builder.Configuration);
 

@@ -2,6 +2,7 @@
 using System;
 using Confluent.Kafka;
 using KafkaWebApiDemo.Services;
+using MediatR;
 using Microsoft.Identity.Client.Extensions.Msal;
 namespace Infrastructure
 {
@@ -11,6 +12,17 @@ namespace Infrastructure
            this IServiceCollection services,
            IConfiguration configuration)
         {
+            // Add cors
+            services.AddCors(options =>
+            {
+                options.AddPolicy("AllowAll", policy =>
+                {
+                    policy
+                        .AllowAnyOrigin()
+                        .AllowAnyHeader()
+                        .AllowAnyMethod();
+                });
+            });
           
             // Add Kafka services
             services.AddSingleton<IProducer<Null, string>>(sp =>

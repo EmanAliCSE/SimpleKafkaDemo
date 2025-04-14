@@ -1,4 +1,6 @@
-﻿using Domain.Entities;
+﻿using API.Controllers.Base;
+using Application.Features.Queries;
+using Domain.Entities;
 using Infrastructure.Interfaces;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -8,28 +10,20 @@ namespace API.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class LogsController : ControllerBase
+    public class LogsController : BaseApiController
     {
-        private readonly IUnitOfWork _uow;
-
-        public LogsController(IUnitOfWork unitOfWork)
+       
+        public LogsController()
         {
-            _uow = unitOfWork;
+         
         }
         [HttpGet("{actionId}")]
         public async Task<IActionResult> GetLogsByActionId(string actionId)
         {
             try
             {
+                return Ok(await Mediator.Send(new GetLogs.Query() { Id=actionId }));
 
-           
-          // var temp= await _uow.Repository<Log>().FirstOrDefaultAsync(a=>a.Id==15);
-            var logs = await _uow.Repository<Log>()
-                .FindByCondition(log => log.ActionId.ToString()==actionId)
-                .OrderByDescending(log => log.TimeStamp)
-                .ToListAsync();
-
-            return Ok(logs);
             }
             catch (Exception ex)
             {

@@ -1,4 +1,7 @@
-﻿using Domain.Models;
+﻿using API.Controllers.Base;
+using API.Features.Queries;
+using Application.Features.Queries;
+using Domain.Models;
 using Infrastructure.Interfaces;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -7,19 +10,18 @@ namespace API.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class OutboxMsgsController : ControllerBase
+    public class OutboxMsgsController : BaseApiController
     {
-        private readonly IUnitOfWork _uow;
+       
 
-        public OutboxMsgsController(IUnitOfWork uow)
+        public OutboxMsgsController()
         {
-            _uow = uow;
+          
         }
         [HttpGet]
         public async Task<ActionResult> GetAllOutbox()
         {
-            var msgs = await _uow.Repository<OutboxMessage>().ListAsync();
-            return Ok(msgs);
+            return Ok(await Mediator.Send(new GetOutboxMsgs.Query()));
         }
     }
 }

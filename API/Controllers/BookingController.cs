@@ -1,23 +1,21 @@
-﻿using API.DTO;
-using API.Models;
-using Domain.Enums;
+﻿using API.Controllers.Base;
+using API.DTO;
+using API.Features.Queries;
 using Infrastructure.Interfaces;
-using KafkaWebApiDemo.Services;
 using Microsoft.AspNetCore.Mvc;
 
 namespace KafkaWebApiDemo.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    public class BookingController : ControllerBase
+    public class BookingController : BaseApiController
     {
         private readonly KafkaProducerService _producerService;
-        private readonly IUnitOfWork _uow;
 
-        public BookingController(KafkaProducerService producerService , IUnitOfWork uow)
+        public BookingController(KafkaProducerService producerService )
         {
             _producerService = producerService;
-            _uow = uow;
+          
         }
 
      
@@ -45,8 +43,10 @@ namespace KafkaWebApiDemo.Controllers
         [HttpGet]
         public async Task<IActionResult> GetAllBookings()
         {
-            var list = await _uow.Repository<TicketBooking>().ListAsync();
-            return Ok(list);
+            return Ok(await Mediator.Send(new GetTickets.Query()));
+
+            //var list = await _uow.Repository<TicketBooking>().ListAsync();
+            //return Ok(list);
         }
     }
 }
