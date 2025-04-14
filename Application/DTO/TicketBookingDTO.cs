@@ -4,6 +4,14 @@ using Domain.Enums;
 
 namespace API.DTO
 {
+    public class TicketDTO
+    {
+        public Guid Id { get; set; }
+        public int Quantity { get; set; }
+        public DateTime BookingTime { get; set; }
+        public BookingStatus Status { get; set; }
+        public DateTime? ProcessedTime { get; set; }
+    }
     public class TicketBookingDTO
     {
         [Required]

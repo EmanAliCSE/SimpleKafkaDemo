@@ -16,6 +16,8 @@ namespace Application
         {
             services.AddMediatR(Assembly.GetAssembly(typeof(IApplication)));
 
+            services.AddAutoMapper(typeof(Mappings.MappingProfile));
+           // services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
 
             return services;
         }
