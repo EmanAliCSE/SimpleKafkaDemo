@@ -1,6 +1,7 @@
 ﻿using API.DTO;
 using API.Models;
 using Domain.Enums;
+using Infrastructure.Interfaces;
 using KafkaWebApiDemo.Services;
 using Microsoft.AspNetCore.Mvc;
 
@@ -8,13 +9,15 @@ namespace KafkaWebApiDemo.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    public class KafkaController : ControllerBase
+    public class BookingController : ControllerBase
     {
         private readonly KafkaProducerService _producerService;
+        private readonly IUnitOfWork _uow;
 
-        public KafkaController(KafkaProducerService producerService)
+        public BookingController(KafkaProducerService producerService , IUnitOfWork uow)
         {
             _producerService = producerService;
+            _uow = uow;
         }
 
      
@@ -37,6 +40,13 @@ namespace KafkaWebApiDemo.Controllers
 
                 return StatusCode(500, "Error processing your booking");
             }
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetAllBookings()
+        {
+            var list = await _uow.Repository<TicketBooking>().ListAsync();
+            return Ok(list);
         }
     }
 }

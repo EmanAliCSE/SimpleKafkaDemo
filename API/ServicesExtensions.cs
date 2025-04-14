@@ -11,6 +11,7 @@ namespace Infrastructure
            this IServiceCollection services,
            IConfiguration configuration)
         {
+          
             // Add Kafka services
             services.AddSingleton<IProducer<Null, string>>(sp =>
                  new ProducerBuilder<Null, string>(new ProducerConfig

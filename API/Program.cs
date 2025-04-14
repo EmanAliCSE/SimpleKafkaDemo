@@ -18,17 +18,28 @@ using Serilog.Events;
 using Serilog.Sinks.MSSqlServer;
 
 var builder = WebApplication.CreateBuilder(args);
+// Add cors
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAll", policy =>
+    {
+        policy
+            .AllowAnyOrigin()
+            .AllowAnyHeader()
+            .AllowAnyMethod();
+    });
+});
 // Read connection string from config
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-
+builder.Services.AddServiceExtensions(builder.Configuration);
 
 builder.Services.AddInfrastructure(builder.Configuration);
-builder.Services.AddServiceExtensions(builder.Configuration);
 builder.Services.AddConsumerServices(builder.Configuration);
+
 
 
 //builder.Logging.ClearProviders();
@@ -68,7 +79,7 @@ builder.Host.UseSerilog();
 
 builder.Host.UseSerilog();
 var app = builder.Build();
-
+app.UseCors("AllowAll");
 app.UseRouting();
 app.UseMiddleware<ActionIdMiddleware>();
 app.UseSwagger();
